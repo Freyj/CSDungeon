@@ -8,7 +8,7 @@
 /* Structure pour les armes */
 typedef struct arme {
 	char* nom;
-	bool estMagique;
+	int estMagique;
 	int degats;
 	int precision;
 }arme;

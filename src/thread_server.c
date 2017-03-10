@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <linux/types.h>
-
+#include <string.h>
 
 /*
 gcc myProgram.o -o myProgram -lpthread
@@ -60,25 +60,51 @@ void* tourDeJeu(){
 	printf("%10s", "tour");
 	infoTest = malloc(sizeof(infoclient));
 	infoTest->nom = "Bouh";
-	if (infoTest->nom = "Bouh") {
+	if (!strcmp(infoTest->nom, "Bouh")) {
 		printf("%10s", "test");
 	}
+}
 
+/* Fonction qui fait tourner le tour*/
+void* client(){
+	printf("%10s", "CLIENT\n");
 }
 
 
+
 int main(void) {
+	int nbClient;
+	nbClient = 3;
 
-	ptr_thread = malloc(sizeof(pthread_t));
+	pthread_t  threadJeu;
+	pthread_t* threadClients;
+	threadClients = calloc(nbClient, sizeof(pthread_t));
 
-	int mainProc = pthread_create(ptr_thread, NULL, &tourDeJeu, NULL);
+	int mainProc = pthread_create(&threadJeu, NULL, &tourDeJeu, NULL);
+	int* clientProc;
+	clientProc = calloc(nbClient, sizeof(int));
+	int i = 0;
+	while(i < nbClient){
+		clientProc[i] = pthread_create(&threadClients[i], NULL, &client, NULL);
+		i = i + 1;
+	}
 
-	if (mainProc == 0 ) {
-		printf("%10s","Thread de jeu terminé\0");
+	if (mainProc == 0) {
+   		(void) pthread_join(threadJeu, NULL);
+   		i = 0;
+		while(i < nbClient){
+   			(void) pthread_join(threadClients[i], NULL);
+   			++i;
+   		}
+		printf("%10s","Thread de jeu terminé\n\0");
 
 	} else {
 		printf("%10s", mainProc);
-		printf("%10s","Lancement du thread de jeu échoué\0");
+		printf("%10s","Lancement du thread de jeu échoué\n\0");
 	}
+	
+	free(clientProc);
+	free(threadClients);
+
 	return 0;
 }
