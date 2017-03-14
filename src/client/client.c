@@ -7,54 +7,12 @@
 
 /*-----------------------------------------------------------
   Client a lancer apres le serveur avec la commande :
-  client <adresse-serveur> <message-a-transmettre>
+  client <adresse-serveur> <pseudo>
+  ensuite les commandes sont du type : 
+  [attaquer|soigner] cible [option]
+  le serveur gèrera l'ordre
   ------------------------------------------------------------*/
-#include <stdlib.h>
-#include <stdio.h>
-#include <linux/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <string.h>
-typedef struct sockaddr 
-sockaddr;
-
-tpyedef struct sockaddr_in 
-sockaddr_in;
-
-typedef struct hostent 
-hostent;
-
-typedef struct servent 
-servent;
-
-/* Structure pour les armes */
-typedef struct arme {
-	char* nom;
-	int estMagique;
-	int degats;
-	int precision;
-}arme;
-
-/* Structure pour stocker les infos du client */
-typedef struct infoclient {
-	/* nom  */
-	char* nom;
-	/* caractéristiques */
-	int pv;
-	int pvMax;
-	int exp;
-	int niveau;
-	int force;
-	int magie;
-	int technique;
-	int vitesse;
-	int chance;
-	int defense;
-	int resistance;
-	arme arme;
-	/*socket associé */
-}infoclient;
-
+#include "client.h"
 
 int main(int argc, char **argv) {
 	int  socket_descriptor; 	/* descripteur de socket */
@@ -68,13 +26,15 @@ int main(int argc, char **argv) {
 	char * prog; 				/* nom du programme */
 	char * host; 				/* nom de la machine distante */
 	char * mesg; 				/* message envoyé */
-	if (argc != 3) {
-		perror("usage : client <adresse-serveur> <message-a-transmettre>");
+	int port; /*le port de connexion*/
+	if (argc != 4) {
+		perror("usage : client <adresse-serveur> <port> <message-a-transmettre>");
 		exit(1);
 	}
 	prog = argv[0];
 	host = argv[1];
-	mesg = argv[2];
+	port = atoi(argv[2]);
+	mesg = argv[3];
 	printf("nom de l'executable : %s \n", prog);
 	printf("adresse du serveur  : %s \n", host);
 	printf("message envoye      : %s \n", mesg);
@@ -86,7 +46,7 @@ int main(int argc, char **argv) {
 	bcopy((char*)ptr_host->h_addr, (char*)&adresse_locale.sin_addr, ptr_host->h_length);
 	adresse_locale.sin_family = AF_INET; /* ou ptr_host->h_addrtype; */
 
-	adresse_locale.sin_port = htons(7332);
+	adresse_locale.sin_port = htons(port);
 
 	printf("numero de port pour la connexion au serveur : %d \n", ntohs(adresse_locale.sin_port));
 
