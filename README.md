@@ -1,6 +1,6 @@
 # CSDungeon
 
 ##compile server
-gcc /server/server.c -o csServer -Wall -lpthread
+gcc ./server/server.c -o csServer -Wall -lpthread
 ##compile client
-gcc /client/client.c -o csClient -Wall -lpthread
+gcc ./client/client.c -o csClient -Wall -lpthread

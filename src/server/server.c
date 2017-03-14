@@ -86,6 +86,12 @@ typedef struct _ennemis{
 	int pvEn3;
 } Ennemis;
 
+typedef struct _jeu{
+	int Ennemis[3];
+	Client clients[16];
+	int nbClients;
+	int nbTour;
+} Jeu;
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /**
@@ -112,9 +118,29 @@ void runLog(char* erreur) {
 	printf("Erreur d'ouverture de fichier de log!\n");
 	exit(1);
   }
-  fprintf(file, "%s %s : %s \n", "[**Serveur**]", heure(), erreur);
+  char* time = heure();
+  fprintf(file, "%s %s : %s \n", "[**Serveur**]", time, erreur);
   fclose(file);
+  free(time);
 }
+
+/**
+ * @brief Fonction pour logger les erreurs dans un fichier
+ * fonctionne pour les int
+ * @param erreur le message en int
+ */
+void runLogInt(int erreur) {
+  FILE* file = fopen("logServeur.log", "a");
+  if (file == NULL) {
+	printf("Erreur d'ouverture de fichier de log!\n");
+	exit(1);
+  }
+  char* time = heure();
+  fprintf(file, "%s %s : %d \n", "[**Serveur**]", time, erreur);
+  fclose(file);
+  free(time);
+}
+
 
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
@@ -124,23 +150,10 @@ void renvoi(int sock) {
 	if ((longueur = read(sock, buffer, sizeof(buffer))) <= 0) {
 		return;
 	}
-	//on clear le buffer avant la réception
-	/* printf("message lu : %s \n", buffer);
-	buffer[0] = 'R';
-	buffer[1] = 'E';
-	buffer[longueur] = '#';
-	buffer[longueur+1] ='\0';
-	printf("message apres traitement : %s \n", buffer);  
-	printf("renvoi du message traite.\n");
-	write(sock,buffer,strlen(buffer)+1);    
-	printf("message envoye. \n");
-	*/
 	runLog(buffer);
-
-
 	printf("message lu: %s \n", buffer);
 
-	memset(&buffer, "\0", 1);
+	memset(&buffer, 0, 1);
 }
 
 /*------------------------------------------------------*/
@@ -161,7 +174,7 @@ Ennemis* genEnnemis(Ennemis* en){
  */
 
 int ennemisElimines(Ennemis* en) {
-	runLog(en->pvEn1);
+	runLogInt(en->pvEn1);
 	if ((en->pvEn1 < 1) && (en->pvEn2 < 1) && (en->pvEn3 < 1)) {
 		return 1;
 	}
@@ -171,7 +184,7 @@ int ennemisElimines(Ennemis* en) {
  * @brief fonction lançant une attaque sur un groupe
  */
 void attaque(Ennemis* en, int degats) {
-	/*if (ennemisElimines(en) == 0) {
+	if (ennemisElimines(en) == 0) {
 		if (en->pvEn1 > 0 ) {
 			en->pvEn1 = en->pvEn1 - degats;
 			runLog("ennemi 1 tapé");
@@ -186,7 +199,7 @@ void attaque(Ennemis* en, int degats) {
 		}
 	}
 	runLog("ennemis tues");
-	*/
+	
 }
 
 
@@ -221,11 +234,21 @@ void action(int sock, Ennemis* en) {
 		reponse = "Vous vous êtes soigné";
 		write(sock,reponse,strlen(reponse)+1);   
 	}
-	memset(&buffer, "\0", 1);
+	//0 est un int, et équivalent à \0
+	memset(&buffer, 0, 1);
+}
+
+/**
+ *  @brief initialisation du serveur
+ */ 
+void initServer() {
+	Ennemis* groupeEnnemis = malloc(sizeof(Ennemis));
+	groupeEnnemis = genEnnemis(groupeEnnemis);
+
 }
 
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
 	if (argc == 2) {
 		int 
 		socket_descriptor, /* descripteur de socket */
@@ -237,12 +260,10 @@ int main(int argc, char **argv) {
 			adresse_client_courant; /* adresse client courant */
 	
 		hostent* ptr_hote; /* les infos recuperees sur la machine hote */
-		servent* ptr_service; /* les infos recuperees sur le service de la machine */
+//		servent* ptr_service; /* les infos recuperees sur le service de la machine */
 		char machine[TAILLE_MAX_NOM+1]; 
 		//generation d'un grp d'ennemi
 		//FIXME: probleme de malloc 
-		Ennemis* groupeEnnemis = malloc(sizeof(Ennemis));
-		groupeEnnemis  = genEnnemis(groupeEnnemis);
 
 		/* nom de la machine locale */
 		gethostname(machine,TAILLE_MAX_NOM);
@@ -261,6 +282,11 @@ int main(int argc, char **argv) {
 		/* ou AF_INET */
 
 		adresse_locale.sin_port = htons(atoi(argv[1]));
+		
+		Ennemis* groupeEnnemis = malloc(sizeof(Ennemis));
+		groupeEnnemis = genEnnemis(groupeEnnemis);
+
+
 		/*-----------------------------------------------------------*/
 		printf("numero de port pour la connexion au serveur : %d \n", 
 		ntohs(adresse_locale.sin_port) /*ntohs(ptr_service->s_port)*/);
@@ -279,6 +305,7 @@ int main(int argc, char **argv) {
 		/* initialisation de la file d'ecoute */
 		listen(socket_descriptor,5);
 		
+		/* Thread d'écoute du serveur */
 
 		/* attente des connexions et traitement des donnees recues */
 		for(;;) {
@@ -294,15 +321,13 @@ int main(int argc, char **argv) {
 				while (i < 2000){
 				action(nouv_socket_descriptor, groupeEnnemis);
 //				renvoi(nouv_socket_descriptor);
-
 				close(nouv_socket_descriptor);
 				++i;
 			}
 		}
-		free(groupeEnnemis);
 	}
 	else {
-		perror("La bonne commande est ./csdungeonServ [port]");
+		perror("La bonne commande est ./csServ [port]");
 	}
 	return 0;
 }
