@@ -224,6 +224,8 @@ void* tourDeJeu(void* arg) {
 	Jeu* jeu = (Jeu*) arg;
 
 	pthread_mutex_lock(&jeu->mutex_Jeu);
+	pthread_mutex_unlock(&jeu->mutex_Jeu);
+	return NULL;
 
 }
 /*------------------------------------------------------*/
@@ -271,6 +273,11 @@ void initServer(Jeu* jeu) {
 	//initialisation d'un tableau de clients
 	jeu->clients = NULL;//?
 	jeu->nbClients = 0;
+	//init threads
+	jeu->threadsClients = malloc(sizeof(pthread_t));
+	jeu->threadJeu = malloc(sizeof(pthread_t));
+	jeu->threadEcoute = malloc(sizeof(pthread_t));
+	
 	pthread_mutex_unlock(&jeu->mutex_Jeu);
 	runLog("initialisation terminée");
 }
