@@ -220,8 +220,9 @@ void soigner() {
 /** 
  * Fonction qui gère le tour
  */ 
-void tourDeJeu(Jeu* jeu) {
-	
+void* tourDeJeu(void* arg) {
+	Jeu* jeu = (Jeu*) arg;
+
 	pthread_mutex_lock(&jeu->mutex_Jeu);
 
 }
@@ -311,7 +312,7 @@ int main(int argc, char** argv) {
 		jeu = malloc(sizeof(Jeu));
 		initServer(jeu);
 		//une fois que le jeu est initialisé, on lance l'écoute 
-		int resultatEcoute = pthread_create(jeu->threadEcoute, NULL, ecoute, jeu);
+		int resultatEcoute = pthread_create(jeu->threadEcoute, NULL, ecoute, (void*) jeu);
 
 
 		if (resultatEcoute != 0) {
@@ -320,7 +321,7 @@ int main(int argc, char** argv) {
 			return 1;
 		}
 		//puis on lance le "jeu" 
-		int resultatJeu = pthread_create(jeu->threadJeu, NULL, tourDeJeu, jeu);
+		int resultatJeu = pthread_create(jeu->threadJeu, NULL, tourDeJeu, (void*) jeu);
 
 		if (resultatJeu != 0) {
 			runLog("Echec du thread de jeu");
