@@ -92,8 +92,8 @@ typedef struct _Jeu{
 	int nbClients;
 	int nbTour;
 	pthread_t* threadsClients;
-	pthread_t threadJeu;
-	pthread_t threadEcoute; 
+	pthread_t* threadJeu;
+	pthread_t* threadEcoute; 
 	pthread_mutex_t mutex_Jeu;
 } Jeu;
 /*------------------------------------------------------*/
@@ -300,7 +300,7 @@ void broadcast(int port, Client* clients, char* message){
 
 void* ecoute(void* arg){
 	//Jeu jeu = (Jeu) arg;
-
+	return NULL;
 }
 
 
@@ -310,18 +310,24 @@ int main(int argc, char** argv) {
 		Jeu* jeu;
 		jeu = malloc(sizeof(Jeu));
 		initServer(jeu);
-		pthread_t ptr_test;
 		//une fois que le jeu est initialisé, on lance l'écoute 
-		int listening = pthread_create(&ptr_test, NULL, ecoute, jeu);
+		int resultatEcoute = pthread_create(jeu->threadEcoute, NULL, ecoute, jeu);
 
 
-		if (listening != 0) {
+		if (resultatEcoute != 0) {
 			runLog("Echec du thread d'écoute");
-			runLogInt(listening);
+			runLogInt(resultatEcoute);
 			return 1;
 		}
 		//puis on lance le "jeu" 
-		//pthread_create(jeu->threadJeu, NULL, tourDeJeu(jeu), NULL);
+		int resultatJeu = pthread_create(jeu->threadJeu, NULL, tourDeJeu, jeu);
+
+		if (resultatJeu != 0) {
+			runLog("Echec du thread de jeu");
+			runLogInt(resultatJeu);
+			return 1;			
+		}
+
 		int 
 		socket_descriptor, /* descripteur de socket */
 		nouv_socket_descriptor, /* [nouveau] descripteur de socket */
