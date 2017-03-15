@@ -30,11 +30,8 @@ Serveur à lancer avant le client
 #define MAX_JOUEURS 16
 
 typedef struct sockaddr sockaddr;
-
 typedef struct sockaddr_in sockaddr_in;
-
 typedef struct hostent hostent;
-
 typedef struct servent servent;
 
 /* Structure pour les armes 
@@ -46,7 +43,7 @@ typedef struct arme {
 }arme;
 */
 /* Structure pour stocker les infos d'un personnage */
-typedef struct infoclient {
+typedef struct _Infoclient {
 	/* nom  */
 	char* nom;
 	/* caractéristiques */
@@ -63,34 +60,41 @@ typedef struct infoclient {
 	//int resistance;
 	//arme arme;
 	/*socket associé */
+}Infoclient;
+
+typedef struct _Client {
+	Infoclient info;
 	int sock;
-}infoclient;
+	char* host;
+}Client;
 
+// typedef struct _DonneesThread{
+//  // Server *server;
+//   int sock_send;
+//   int sock_read;
+//   int status;
+//   char* buffer_send;
+//   char* buffer_read;
+//   pthread_t thread_read;
+//   pthread_t  thread_send;
+//   pthread_mutex_t mutex_data;
+// } DonneesThread;
 
-typedef struct _donneesThread{
- // Server *server;
-  int sock_send;
-  int sock_read;
-  int status;
-  char* buffer_send;
-  char* buffer_read;
-  pthread_t thread_read;
-  pthread_t  thread_send;
-  pthread_mutex_t mutex_data;
-} donneesThread;
-
-
-typedef struct _ennemis{
+typedef struct _Ennemis{
 	int pvEn1;
 	int pvEn2;
 	int pvEn3;
 } Ennemis;
 
-typedef struct _jeu{
-	int Ennemis[3];
-	Client clients[16];
+typedef struct _Jeu{
+	Ennemis* ennemis;
+	Client* clients;
 	int nbClients;
 	int nbTour;
+	pthread_t* threadsClients;
+	pthread_t threadJeu;
+	pthread_t threadEcoute; 
+	pthread_mutex_t mutex_Jeu;
 } Jeu;
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
@@ -123,7 +127,8 @@ void runLog(char* erreur) {
   fclose(file);
   free(time);
 }
-
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 /**
  * @brief Fonction pour logger les erreurs dans un fichier
  * fonctionne pour les int
@@ -140,8 +145,6 @@ void runLogInt(int erreur) {
   fclose(file);
   free(time);
 }
-
-
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 void renvoi(int sock) {
@@ -155,7 +158,6 @@ void renvoi(int sock) {
 
 	memset(&buffer, 0, 1);
 }
-
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /**
@@ -168,18 +170,22 @@ Ennemis* genEnnemis(Ennemis* en){
 	en->pvEn3 = 20;
 	return en;
 }
-
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 /**
  * @brief fonction vérifiant qu'un groupe n'est pas mort
  */
 
 int ennemisElimines(Ennemis* en) {
+	runLog("Check d'ennemis éliminés");
 	runLogInt(en->pvEn1);
 	if ((en->pvEn1 < 1) && (en->pvEn2 < 1) && (en->pvEn3 < 1)) {
 		return 1;
 	}
 	return 0;
 }
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 /**
  * @brief fonction lançant une attaque sur un groupe
  */
@@ -199,19 +205,28 @@ void attaque(Ennemis* en, int degats) {
 		}
 	}
 	runLog("ennemis tues");
-	
 }
-
-
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 /**
  * @brief fonction qui soigne
+ * TODO: do
  */
-void soigner(){
+void soigner() {
 
 }
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/** 
+ * Fonction qui gère le tour
+ */ 
+void tourDeJeu(Jeu* jeu) {
+	
+	pthread_mutex_lock(&jeu->mutex_Jeu);
 
-
-
+}
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 /**
  * @brief Fonction réagissant à l'action d'un client
  */ 
@@ -222,34 +237,84 @@ void action(int sock, Ennemis* en) {
 		return;
 	}
 	//on prévient le client qu'il a fait quelque chose
-	char* reponse;
+	//char* reponse;
 
-	if (strcmp(buffer, "Attaque") == 0) {
-		//attaque(en, 2);
-		reponse = "Vous avez attaqué";
-		write(sock,reponse,strlen(reponse)+1);   
-	}
-	if (strcmp(buffer, "Soigner") == 0) {
-		soigner();
-		reponse = "Vous vous êtes soigné";
-		write(sock,reponse,strlen(reponse)+1);   
-	}
+	// if (strcmp(buffer, "Attaque") == 0) {
+	// 	//attaque(en, 2);
+	// 	reponse = "Vous avez attaqué";
+	// 	write(sock,reponse,strlen(reponse)+1);   
+	// }
+	// if (strcmp(buffer, "Soigner") == 0) {
+	// 	soigner();
+	// 	reponse = "Vous vous êtes soigné";
+	// 	write(sock,reponse,strlen(reponse)+1);   
+	// }
 	//0 est un int, et équivalent à \0
 	memset(&buffer, 0, 1);
 }
-
 /**
  *  @brief initialisation du serveur
  */ 
-void initServer() {
-	Ennemis* groupeEnnemis = malloc(sizeof(Ennemis));
+void initServer(Jeu* jeu) {
+	//comme on modifie le jeu
+	runLog("début d'initialisation");
+    pthread_mutex_lock(&jeu->mutex_Jeu);
+    //initialisation des adversaires
+    Ennemis* groupeEnnemis = malloc(sizeof(Ennemis));
 	groupeEnnemis = genEnnemis(groupeEnnemis);
+	jeu->ennemis = groupeEnnemis;
+	runLog("Pvs de l'ennemi 1 pour test");
+	runLogInt(jeu->ennemis->pvEn1);
+	//compteur de tours
+	jeu->nbTour = 0;
+	//initialisation d'un tableau de clients
+	jeu->clients = NULL;//?
+	jeu->nbClients = 0;
+	pthread_mutex_unlock(&jeu->mutex_Jeu);
+	runLog("initialisation terminée");
+}
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/**
+ * @brief broadcast les infos du tour aux clients
+ *	cf protocole
+ * @details log les envois
+ */
+void broadcast(int port, Client* clients, char* message){
+	int i;
+	for (i = 0; i < MAX_JOUEURS; ++i) {
+		if (write(clients[i].sock,message,strlen(message)+1) == -1) {
+			runLog("Erreur d'envoi pour le client");
+			runLog(clients[i].info.nom);
+		}	
+		else {
+			runLog("Envoi correct pour le client");
+			runLog(clients[i].info.nom);
+		}
+	}
+}
+
+/**
+ *  @brief fonction d'écoute
+ */
+
+void* ecoute(void* arg){
+	//Jeu jeu = (Jeu) arg;
+
+	return NULL;
 
 }
 
 
 int main(int argc, char** argv) {
 	if (argc == 2) {
+		//on commence par initialiser le "jeu"
+		Jeu* jeu = malloc(sizeof(Jeu));
+		initServer(jeu);
+		//une fois que le jeu est initialisé, on lance l'écoute 
+		//pthread_create(&jeu->threadEcoute, NULL, &ecoute, (void)* jeu);
+		//puis on lance le "jeu" 
+		//pthread_create(jeu->threadJeu, NULL, tourDeJeu(jeu), NULL);
 		int 
 		socket_descriptor, /* descripteur de socket */
 		nouv_socket_descriptor, /* [nouveau] descripteur de socket */
@@ -262,8 +327,6 @@ int main(int argc, char** argv) {
 		hostent* ptr_hote; /* les infos recuperees sur la machine hote */
 //		servent* ptr_service; /* les infos recuperees sur le service de la machine */
 		char machine[TAILLE_MAX_NOM+1]; 
-		//generation d'un grp d'ennemi
-		//FIXME: probleme de malloc 
 
 		/* nom de la machine locale */
 		gethostname(machine,TAILLE_MAX_NOM);
@@ -325,6 +388,7 @@ int main(int argc, char** argv) {
 				++i;
 			}
 		}
+		free(jeu);
 	}
 	else {
 		perror("La bonne commande est ./csServ [port]");
