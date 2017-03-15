@@ -301,18 +301,25 @@ void broadcast(int port, Client* clients, char* message){
 void* ecoute(void* arg){
 	//Jeu jeu = (Jeu) arg;
 
-	return NULL;
-
 }
 
 
 int main(int argc, char** argv) {
 	if (argc == 2) {
 		//on commence par initialiser le "jeu"
-		Jeu* jeu = malloc(sizeof(Jeu));
+		Jeu* jeu;
+		jeu = malloc(sizeof(Jeu));
 		initServer(jeu);
+		pthread_t ptr_test;
 		//une fois que le jeu est initialisé, on lance l'écoute 
-		//pthread_create(&jeu->threadEcoute, NULL, &ecoute, (void)* jeu);
+		int listening = pthread_create(&ptr_test, NULL, ecoute, jeu);
+
+
+		if (listening != 0) {
+			runLog("Echec du thread d'écoute");
+			runLogInt(listening);
+			return 1;
+		}
 		//puis on lance le "jeu" 
 		//pthread_create(jeu->threadJeu, NULL, tourDeJeu(jeu), NULL);
 		int 
