@@ -96,10 +96,10 @@ void decode(char* mesg) {
 		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
 		//nomCibleLongueur inutile;						//3 | 4
 		//typeDeModification inutile					//5
-		donneesLongueur = getCibleLongueur(mesg);		//6 | 7 | 8
+		donneesLongueur = getDonneesLongueur(mesg);		//6 | 7 | 8
 		nomSource = calloc(nomSourceLongueur+1, 1);
 		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
-		printf("CONNEXION LongueurNomSource : %i LongueurDonnees : %i \nNomSource : %s\n",
+		printf("Type de message : CONNEXION \nLongueurNomSource : %i LongueurDonnees : %i \nNomSource : %s\n",
 		 nomSourceLongueur, donneesLongueur, nomSource);
 		free(nomSource);
 	}else if(mesg[0] == '1'){							//0
@@ -113,7 +113,7 @@ void decode(char* mesg) {
 		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
 		strncpy(nomCible, &mesg[longueurEntete + nomSourceLongueur], nomCibleLongueur);
 		pointsDeVie = getPointsDeVie(mesg, longueurEntete + nomSourceLongueur + nomCibleLongueur);
-		printf("ATTAQUE LongueurNomSource : %i LongueurNomCible : %i LongueurDonnees : %i \nPV : %i NomSource : %s NomCible : %s\n",
+		printf("Type de message : ATTAQUE \nLongueurNomSource : %i LongueurNomCible : %i LongueurDonnees : %i \nPV : %i NomSource : %s NomCible : %s\n",
 		 nomSourceLongueur, nomCibleLongueur, donneesLongueur,
 		 pointsDeVie, nomSource, nomCible);
 		free(nomSource);
@@ -129,7 +129,7 @@ void decode(char* mesg) {
 		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
 		strncpy(nomCible, &mesg[longueurEntete + nomSourceLongueur], nomCibleLongueur);
 		pointsDeVie = getPointsDeVie(mesg, longueurEntete + nomSourceLongueur + nomCibleLongueur);
-		printf("SOIGNE LongueurNomSource : %i LongueurNomCible : %i LongueurDonnees : %i \nPV : %i NomSource : %s NomCible : %s\n",
+		printf("Type de message : SOIGNE \nLongueurNomSource : %i LongueurNomCible : %i LongueurDonnees : %i \nPV : %i NomSource : %s NomCible : %s\n",
 		 nomSourceLongueur, nomCibleLongueur, donneesLongueur,
 		 pointsDeVie, nomSource, nomCible);
 		free(nomSource);
@@ -146,7 +146,7 @@ void decode(char* mesg) {
 		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
 		strncpy(nomCible, &mesg[longueurEntete + nomSourceLongueur], nomCibleLongueur);
 		pointsDeVie = getPointsDeVie(mesg, longueurEntete + nomSourceLongueur + nomCibleLongueur);
-		printf("NOTIFICATION LongueurNomSource : %i LongueurNomCible : %i LongueurDonnees : %i \nTypeModifi : %i PV : %i NomSource : %s NomCible : %s\n",
+		printf("Type de message : NOTIFICATION \nLongueurNomSource : %i LongueurNomCible : %i LongueurDonnees : %i \nTypeModification : %i PV : %i NomSource : %s NomCible : %s\n",
 		 nomSourceLongueur, nomCibleLongueur, donneesLongueur, typeDeModification,
 		 pointsDeVie, nomSource, nomCible);
 		free(nomSource);
@@ -161,12 +161,13 @@ void decode(char* mesg) {
 		nomCible = calloc(nomCibleLongueur+1, 1);
 		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
 		strncpy(nomCible, &mesg[longueurEntete + nomSourceLongueur], nomCibleLongueur);
-		printf("MORT LongueurNomSource : %i LongueurNomCible : %i \nNomSource : %s NomCible : %s\n",
+		printf("Type de message : MORT \nLongueurNomSource : %i LongueurNomCible : %i \nNomSource : %s NomCible : %s\n",
 		 nomSourceLongueur, nomCibleLongueur, nomSource, nomCible);
 		free(nomSource);
 		free(nomCible);
 	}else if(mesg[0] == '5'){							//0
 		//Liste de client
+		printf("Type de message : LISTE DES CLIENTS \n");
 		int nbClient;
 		nbClient = getNbClient(mesg);					//1 | 2 NBCLIENT
 		int longueurNomClient[nbClient];
@@ -176,15 +177,16 @@ void decode(char* mesg) {
 		for(int i = 0; i < nbClient; ++i){
 			offset = 2 * i + 3;
 			longueurNomClient[i] = getLongueurNomClient(mesg, offset);
-			printf("longueurNomClient a la position : %i -- %i\n", i, longueurNomClient[i]);
+			//printf("longueurNomClient a la position : %i -- %i\n", i, longueurNomClient[i]);
 			//sommeLongueur = sommeLongueur + longueurNomClient[i];
 		}
 		offset = offset + 2;
 		char * nomsClients[nbClient];
-		for(int i = 0; i < nbClient; ++i){		
+		for(int i = 0; i < nbClient; ++i){
 			nomsClients[i] = calloc(longueurNomClient[i]+1, 1);
 			strncpy(nomsClients[i], &mesg[offset], longueurNomClient[i]);
-			printf("nomClient a la position : %i -- %s\n", i, nomsClients[i]);
+			//printf("nomClient a la position : %i -- %s\n", i, nomsClients[i]);
+			printf("%i/ %s\n", i, nomsClients[i]);
 			offset = longueurNomClient[i] + offset;
 		}
 
