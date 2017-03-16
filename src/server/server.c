@@ -1,12 +1,11 @@
 /**
- * @Authors : Charlène Servantie, Charles-Eric Begaudeau
+ * @Authors : Charlene Servantie, Charles-Eric Begaudeau
  * @Date : 2017
  * @Version : 0.2
  * @brief : 
 */
-
 /*----------------------------------------------
-Serveur à lancer avant le client
+Serveur a lancer avant le client
 ------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,7 +18,7 @@ Serveur à lancer avant le client
 #include <string.h> 
 /* pour bcopy, ... */  
 #include <unistd.h>
-/* pour récupérer le temps*/ 
+/* pour recuperer le temps*/ 
 #include <time.h> 
 #include <pthread.h>
 #include <arpa/inet.h>
@@ -30,7 +29,6 @@ Serveur à lancer avant le client
 
 #define TAILLE_MAX_NOM 256
 #define MAX_JOUEURS 16
-
 
 // pour compter les joueurs
 static int nbJoueursCourants = 0;
@@ -47,9 +45,7 @@ typedef struct servent servent;
 
 /* Structure pour stocker les infos d'un personnage */
 typedef struct _InfoJoueur {
-	/* nom  */
-	char* nom;
-	/* caractéristiques */
+	/* caracteristiques */
 	int pv;
 	int pvMax;
 	int exp;
@@ -59,6 +55,7 @@ typedef struct _InfoJoueur {
 /* Structure pour stocker les infos d'un client*/
 typedef struct _Joueur {
 	InfoJoueur info;
+	int sock_desc;
 	int nouv_sock;
 	int joueurId;
 	int longueur_adresse_courante;
@@ -76,15 +73,15 @@ typedef struct _Ennemis{
 /* Structure pour l'info du jeu */
 typedef struct _Jeu{
 	Ennemis* ennemis;
-	int nbJoueurs;
 	int nbTour;
 	pthread_mutex_t mutex_Jeu;
 	int port;
 	char* nomServeur;
 } Jeu;
 
-//joueurs
+//joueurs et jeu variables globales
 Joueur* joueurs[MAX_JOUEURS];
+Jeu* jeu;
 
 
 /*------------------------------------------------------*/
@@ -92,7 +89,7 @@ Joueur* joueurs[MAX_JOUEURS];
 /**
  * @brief Fonction qui donne l'heure pour les logs
  * @details renvoie l'heure en hh:mm:ss
- * @return un char* décrivant l'heure
+ * @return un char* decrivant l'heure
  */
 char* heure() {
 	time_t temps = time(NULL);
@@ -186,8 +183,8 @@ void renvoi(int sock) {
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /**
- * @brief Fonction générant un groupe d'ennemis
- * @details 3 ennemis à 20 pv, pas encore de réglages
+ * @brief Fonction generant un groupe d'ennemis
+ * @details 3 ennemis a 20 pv, pas encore de reglages
  */
 Ennemis* genEnnemis(Ennemis* en) {
 	en->pvEn1 = 20;
@@ -198,10 +195,10 @@ Ennemis* genEnnemis(Ennemis* en) {
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /**
- * @brief fonction vérifiant qu'un groupe n'est pas mort
+ * @brief fonction verifiant qu'un groupe n'est pas mort
  */
 int ennemisElimines(Ennemis* en) {
-	runLog("Check d'ennemis éliminés", 50);
+	runLog("Check d'ennemis elimines", 50);
 	runLogInt(en->pvEn1, 50);
 	if ((en->pvEn1 < 1) && (en->pvEn2 < 1) && (en->pvEn3 < 1)) {
 		return 1;
@@ -217,15 +214,15 @@ void attaque(Ennemis* en, int degats) {
 	if (ennemisElimines(en) == 0) {
 		if (en->pvEn1 > 0 ) {
 			en->pvEn1 = en->pvEn1 - degats;
-			runLog("ennemi 1 tapé", 50);
+			runLog("ennemi 1 tape", 50);
 		}
 		else if(en->pvEn2 > 0 ) {
 			en->pvEn2 = en->pvEn2 - degats;
-			runLog("ennemi 2 tapé", 50);
+			runLog("ennemi 2 tape", 50);
 		}
 		else if(en->pvEn3 > 0 ) {
 			en->pvEn3 = en->pvEn3 - degats;
-			runLog("ennemi 3 tapé", 50);
+			runLog("ennemi 3 tape", 50);
 		}
 	}
 	runLog("ennemis tues", 50);
@@ -241,7 +238,7 @@ void soigner() {
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /** 
- * Fonction qui gère le tour
+ * Fonction qui gere le tour
  */ 
 void* tourDeJeu(void* arg) {
 	Jeu* jeu = (Jeu*) arg;
@@ -252,7 +249,7 @@ void* tourDeJeu(void* arg) {
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /**
- * @brief Fonction réagissant à l'action d'un client
+ * @brief Fonction reagissant a l'action d'un client
  */ 
 void action(int sock, Ennemis* en) {
 	char buffer[256];
@@ -260,29 +257,29 @@ void action(int sock, Ennemis* en) {
 	if ((longueur = read(sock, buffer, sizeof(buffer))) <= 0) {
 		return;
 	}
-	//on prévient le client qu'il a fait quelque chose
+	//on previent le client qu'il a fait quelque chose
 	//char* reponse;
 
 	// if (strcmp(buffer, "Attaque") == 0) {
 	// 	//attaque(en, 2);
-	// 	reponse = "Vous avez attaqué";
+	// 	reponse = "Vous avez attaque";
 	// 	write(sock,reponse,strlen(reponse)+1);	
 	// }
 	// if (strcmp(buffer, "Soigner") == 0) {
 	// 	soigner();
-	// 	reponse = "Vous vous êtes soigné";
+	// 	reponse = "Vous vous etes soignes";
 	// 	write(sock,reponse,strlen(reponse)+1);	
 	// }
-	//0 est un int, et équivalent à \0
+	//0 est un int, et equivalent a \0
 	memset(&buffer, 0, 1);
 }
 /**
  *	@brief initialisation du serveur
  */ 
-void initServer(Jeu* jeu, int port) {
+void initServer(int port) {
 	//comme on modifie le jeu
-	runLog("début d'initialisation", 0);
-	//théoriquement, le mutex n'est pas nécessaire ici, mais au cas où
+	runLog("debut d'initialisation", 0);
+	//theoriquement, le mutex n'est pas necessaire ici, mais au cas où
 	//init du mutex 
 	pthread_mutex_init(&jeu->mutex_Jeu, NULL);
 	pthread_mutex_lock(&jeu->mutex_Jeu);
@@ -299,12 +296,12 @@ void initServer(Jeu* jeu, int port) {
 	gethostname(jeu->nomServeur,TAILLE_MAX_NOM);
 
 	pthread_mutex_unlock(&jeu->mutex_Jeu);
-	runLog("initialisation terminée", 0);
+	runLog("initialisation terminee", 0);
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /**
- * @brief envoie un message à tous les joueurs
+ * @brief envoie un message a tous les joueurs
  * @details log les envois
  * @param message le char* du message
  */
@@ -314,11 +311,11 @@ void envoiTous(char* message){
 		if (joueurs[i]) {
 			if (write(joueurs[i]->nouv_sock,message,strlen(message)+1) == -1) {
 				runLog("Erreur d'envoi pour le client", 50);
-				runLog(joueurs[i]->info.nom, 50);
+				runLog(joueurs[i]->nomJoueur, 50);
 			}	
 			else {
 				runLog("Envoi correct pour le client", 50);
-				runLog(joueurs[i]->info.nom, 50);
+				runLog(joueurs[i]->nomJoueur, 50);
 			}
 		}
 	}
@@ -326,7 +323,7 @@ void envoiTous(char* message){
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /**
- * @brief gère les signaux 
+ * @brief gere les signaux 
  * @param nomSignal : l'int du signal (SIGINT)
  */
 void gestionSignal(int nomSignal){
@@ -337,7 +334,7 @@ void gestionSignal(int nomSignal){
   if (nomSignal == SIGINT) {
 	for (i = 0; i < MAX_JOUEURS; i++) {
 		if (joueurs[i]) {
-			envoiTous("Déconnexion Serveur.");
+			envoiTous("Deconnexion Serveur.");
 	  		close(joueurs[i]->nouv_sock);
 	  		free(joueurs[i]);
 		}
@@ -370,7 +367,30 @@ void ajoutJoueur(Joueur* joueur) {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/** @brief fonction qui enlève un joueur et decremente le total
+/**
+ * @brief  Initialisation du joueur
+ */
+Joueur* initJoueur(sockaddr_in adresse_locale, int nouv_sock) {
+	Joueur* joueur = (Joueur *)calloc((sizeof(Joueur)), 1);
+	joueur->adresse_locale = adresse_locale;
+	joueur->nouv_sock = nouv_sock;
+	joueur->joueurId = joueurIdCompteur++;
+	InfoJoueur inf;
+	inf.pv = 100;
+	inf.pvMax = 100;
+	inf.exp = 0;
+	/* La force est comprise entre 1 et 20 */
+	inf.force = (rand() % 20) + 1;
+	runLog("Force du joueur :", 50);
+	runLogInt(inf.force, 50);
+	inf.nbTues = 0;
+	joueur->info = inf;
+	runLog("Joueur cree", 50);
+	return joueur;
+}
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/** @brief fonction qui enleve un joueur et decremente le total
  *
  */
 void retraitJoueur(Joueur* joueur){
@@ -389,18 +409,20 @@ void retraitJoueur(Joueur* joueur){
 /* Fonction Principale */
 int main(int argc, char** argv) {
 	if (argc == 2) {
+		//pour les calculs randoms de stats
+		srand(time(NULL));
+
 		pthread_t threadJeu;
 		pthread_t threadJoueur;
-		//TODO:faudrait check les arguments d'entrée
+		//TODO:faudrait check les arguments d'entree
 		//gestion de signaux pour la terminaison du programme
 		signal(SIGTERM, gestionSignal);
 		signal(SIGINT, gestionSignal);
 		//on commence par initialiser le "jeu"
-		Jeu* jeu;
 		jeu = malloc(sizeof(Jeu));
-		initServer(jeu, atoi(argv[1]));
+		initServer(atoi(argv[1]));
 		int resultatJeu = pthread_create(&threadJeu, NULL, tourDeJeu, (void*) jeu);
-		//si le thread de jeu échoue
+		//si le thread de jeu echoue
 		if (resultatJeu != 0) {
 			runLog("Echec du thread de jeu", 0);
 			runLogInt(resultatJeu, 0);
@@ -431,7 +453,7 @@ int main(int argc, char** argv) {
 		/* ou AF_INET */
 		adresse_locale.sin_addr.s_addr = INADDR_ANY; 
 		/* ou AF_INET */
-		//on affecte le port qui a été donné en commande
+		//on affecte le port qui a ete donne en commande
 
 		adresse_locale.sin_port = htons(atoi(argv[1]));
 		
@@ -444,7 +466,7 @@ int main(int argc, char** argv) {
 			exit(1);
 		}
 
-		/* association du socket socket_descriptor à la structure d'adresse adresse_locale */
+		/* association du socket socket_descriptor a la structure d'adresse adresse_locale */
 		if ((bind(socket_descriptor, (sockaddr*)(&adresse_locale), sizeof(adresse_locale))) < 0) {
 			perror("erreur : impossible de lier la socket a l'adresse de connexion.");
 			exit(1);
@@ -457,7 +479,7 @@ int main(int argc, char** argv) {
 		/* attente des connexions et traitement des donnees recues */
 		for(;;) {
 			longueur_adresse_courante = sizeof(adresse_client_courant);
-			/* adresse_client_courant sera renseignée par accept via les infos du connect */
+			/* adresse_client_courant sera renseignee par accept via les infos du connect */
 			if ((new_socket_descriptor = accept(socket_descriptor, (sockaddr*) (&adresse_client_courant), &longueur_adresse_courante)) < 0) {
 				perror("erreur : impossible d'accepter la connexion avec le client.");
 				exit(1);
@@ -466,15 +488,12 @@ int main(int argc, char** argv) {
 
 			/* on verifie que le nbJoueurs est pas max */
 			if ( (nbJoueursCourants+1) == MAX_JOUEURS){
-				runLog("Trop de joueurs connectés\n", 0);
+				runLog("Trop de joueurs connectes\n", 0);
 				close(new_socket_descriptor);
 			}
 			
-			/* Reglage joueurs */
-			Joueur* joueur = (Joueur *)calloc((sizeof(Joueur)), 1);
-			joueur->adresse_locale = adresse_locale;
-			joueur->nouv_sock = new_socket_descriptor;
-			joueur->joueurId = joueurIdCompteur++;
+			/* Creation d'un joueur */
+			Joueur* joueur = initJoueur(adresse_locale, new_socket_descriptor);
 			//on assigne le nom du joueur sur le message
 			char buffer[256];
 			int longueur;
@@ -485,7 +504,7 @@ int main(int argc, char** argv) {
 			joueur->nomJoueur = buffer;
 			runLog(joueur->nomJoueur, 0);
 			runLogInt(joueur->joueurId, 0);
-			runLog("Joueur connecté", 0);
+			runLog("Joueur connecte", 0);
 			ajoutJoueur(joueur);
 			pthread_create(&threadJoueur, NULL, loop_joueur, (void *)joueur);
 		}
