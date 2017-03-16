@@ -16,6 +16,7 @@
 #include <netdb.h>
 #include <string.h>
 
+
 typedef struct sockaddr 
 sockaddr;
 
@@ -106,6 +107,102 @@ void sendMessage(int port, char* host, char* mesg) {
     close(socket_descriptor);
 
 }
+
+int getSourceLongueur(char* mesg){
+	int nomSourceLongueur;
+	nomSourceLongueur = 0;
+	nomSourceLongueur = nomSourceLongueur + 10 * atoi(mesg[1]);
+	nomSourceLongueur = nomSourceLongueur + atoi(mesg[2]);
+	return nomSourceLongueur;
+}
+
+int getCibleLongueur(char* mesg){
+	int nomCibleLongueur;
+	nomCibleLongueur = 0;
+	nomCibleLongueur = nomCibleLongueur + 10 * atoi(mesg[3]);
+	nomCibleLongueur = nomCibleLongueur + atoi(mesg[4]);
+	return nomCibleLongueur;
+}
+
+int getDonneesLongueur(char* mesg){
+	int donneesLongueur;
+	donneesLongueur = 0;
+	donneesLongueur = donneesLongueur + 100 * atoi(mesg[6]);
+	donneesLongueur = donneesLongueur + 10* atoi(mesg[7]);
+	donneesLongueur = donneesLongueur + atoi(mesg[8]);
+	return donneesLongueur;
+}
+
+int getPointsDeVie(char* mesg, int pos){
+	int pointsDeVie;
+	pointsDeVie = 0;
+	pointsDeVie = pointsDeVie + 100 * atoi(mesg[pos + 1]);;
+	pointsDeVie = pointsDeVie + 10 * atoi(mesg[pos + 2]);;
+	pointsDeVie = pointsDeVie + atoi(mesg[pos + 3]);;
+	return pointsDeVie;
+}
+
+
+void decode(char* mesg) {
+	int nomSourceLongueur;
+	int nomCibleLongueur;
+	int donneesLongueur;
+	int typeDeModification;
+	int pointsDeVie;
+	char* nomSource;
+	char* nomCible;
+	int longueurEntete;
+	longueurEntete = 9;
+	if(mesg[0] == "0"){									//0
+		//connexion
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		//nomCibleLongueur inutile;						//3 | 4
+		//typeDeModification inutile					//5
+		donneesLongueur = getCibleLongueur(mesg);		//6 | 7 | 8
+		strncpy(nomSource, mesg + longueurEntete, nomSourceLongueur);
+
+	}else if(mesg[0] == "1"){							//0
+		//attaque
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
+		//typeDeModification inutile					//5
+		donneesLongueur = getCibleLongueur(mesg);		//6 | 7 | 8
+		strncpy(nomSource, mesg + longueurEntete, nomSourceLongueur);
+		strncpy(nomCible, mesg + longueurEntete + nomSourceLongueur, nomCibleLongueur);
+		pointsDeVie = getPointsDeVie(mesg, longueurEntete + nomSourceLongueur + nomCibleLongueur);
+	}else if(mesg[0] == "2"){							//0
+		//soigne
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
+		//typeDeModification inutile					//5
+		donneesLongueur = getCibleLongueur(mesg);		//6 | 7 | 8
+		strncpy(nomSource, mesg + longueurEntete, nomSourceLongueur);
+		strncpy(nomCible, mesg + longueurEntete + nomSourceLongueur, nomCibleLongueur);
+		pointsDeVie = getPointsDeVie(mesg, longueurEntete + nomSourceLongueur + nomCibleLongueur);
+	}else if(mesg[0] == "3"){							//0
+		//notification
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
+		typeDeModification = atoi(mesg[5]);				//5
+		donneesLongueur = getCibleLongueur(mesg);		//6 | 7 | 8
+		strncpy(nomSource, mesg + longueurEntete, nomSourceLongueur);
+		strncpy(nomCible, mesg + longueurEntete + nomSourceLongueur, nomCibleLongueur);
+		pointsDeVie = getPointsDeVie(mesg, longueurEntete + nomSourceLongueur + nomCibleLongueur);
+	}else if(mesg[0] == "4"){							//0
+		//mort
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
+		//typeDeModification inutile					//5
+		donneesLongueur = getCibleLongueur(mesg);		//6 | 7 | 8
+		strncpy(nomSource, mesg + longueurEntete, nomSourceLongueur);
+		strncpy(nomCible, mesg + longueurEntete + nomSourceLongueur, nomCibleLongueur);
+
+	}else{
+		perror("erreur : message errone.");
+		exit(1);
+	}
+}
+
 
 
 int main(int argc, char **argv) {
