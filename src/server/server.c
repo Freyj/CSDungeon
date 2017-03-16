@@ -31,6 +31,7 @@ Serveur à lancer avant le client
 #define TAILLE_MAX_NOM 256
 #define MAX_JOUEURS 16
 
+
 // pour compter les joueurs
 static int nbJoueursCourants = 0;
 //pour les identifier
@@ -58,7 +59,6 @@ typedef struct _InfoJoueur {
 /* Structure pour stocker les infos d'un client*/
 typedef struct _Joueur {
 	InfoJoueur info;
-	int sock_desc;
 	int nouv_sock;
 	int joueurId;
 	int longueur_adresse_courante;
@@ -312,7 +312,7 @@ void envoiTous(char* message){
 	int i;
 	for (i = 0; i < MAX_JOUEURS; ++i) {
 		if (joueurs[i]) {
-			if (write(joueurs[i]->sock_desc,message,strlen(message)+1) == -1) {
+			if (write(joueurs[i]->nouv_sock,message,strlen(message)+1) == -1) {
 				runLog("Erreur d'envoi pour le client", 50);
 				runLog(joueurs[i]->info.nom, 50);
 			}	
@@ -338,8 +338,8 @@ void gestionSignal(int nomSignal){
 	for (i = 0; i < MAX_JOUEURS; i++) {
 		if (joueurs[i]) {
 			envoiTous("Déconnexion Serveur.");
-	  	close(joueurs[i]->nouv_sock);
-	  	free(joueurs[i]);
+	  		close(joueurs[i]->nouv_sock);
+	  		free(joueurs[i]);
 		}
 	}
     close(descripteurSocket);
@@ -356,9 +356,9 @@ void* loop_joueur(void* arg){
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /** 
- * @brief fonction qui ajoute un joueur
+ * @brief fonction qui ajoute un joueur et incremente le total
  */
-void ajoutJoueur(Jeu* jeu, Joueur* joueur) {
+void ajoutJoueur(Joueur* joueur) {
 	int i;
 	for (i = 0; i < MAX_JOUEURS; i++) {
 		if (!(&joueurs[i])) {
@@ -368,6 +368,22 @@ void ajoutJoueur(Jeu* jeu, Joueur* joueur) {
 		}
 		nbJoueursCourants++;
 }
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/** @brief fonction qui enlève un joueur et decremente le total
+ *
+ */
+void retraitJoueur(Joueur* joueur){
+	int i;
+	for (i = 0; i < MAX_JOUEURS; i++) {
+		if (joueurs[i]) {
+			joueurs[i] = NULL;
+			break;
+		}
+    }
+  nbJoueursCourants--;
+}
+
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /* Fonction Principale */
@@ -470,7 +486,7 @@ int main(int argc, char** argv) {
 			runLog(joueur->nomJoueur, 0);
 			runLogInt(joueur->joueurId, 0);
 			runLog("Joueur connecté", 0);
-			ajoutJoueur(jeu, joueur);
+			ajoutJoueur(joueur);
 			pthread_create(&threadJoueur, NULL, loop_joueur, (void *)joueur);
 		}
 		free(jeu);
