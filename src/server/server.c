@@ -169,6 +169,9 @@ void runLogInt(int erreur, int threadNb) {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
+/**
+ * @brief fonction de renvoi
+ */
 void renvoi(int sock) {
 	char buffer[256];
 	int longueur;
@@ -197,7 +200,6 @@ Ennemis* genEnnemis(Ennemis* en) {
 /**
  * @brief fonction vérifiant qu'un groupe n'est pas mort
  */
-
 int ennemisElimines(Ennemis* en) {
 	runLog("Check d'ennemis éliminés", 50);
 	runLogInt(en->pvEn1, 50);
@@ -235,7 +237,6 @@ void attaque(Ennemis* en, int degats) {
  * TODO: do
  */
 void soigner() {
-
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
@@ -244,11 +245,9 @@ void soigner() {
  */ 
 void* tourDeJeu(void* arg) {
 	Jeu* jeu = (Jeu*) arg;
-
 	pthread_mutex_lock(&jeu->mutex_Jeu);
 	pthread_mutex_unlock(&jeu->mutex_Jeu);
 	return NULL;
-
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
@@ -305,25 +304,54 @@ void initServer(Jeu* jeu, int port) {
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /**
- * @brief broadcast les infos du tour aux joueurs
- *	cf protocole
+ * @brief envoie un message à tous les joueurs
  * @details log les envois
+ * @param message le char* du message
  */
-void broadcast(int port, Jeu* jeu, char* message){
+void envoiTous(char* message){
 	int i;
-	for (i = 0; i < nbJoueursCourants; ++i) {
-		if (write(joueurs[i]->sock_desc,message,strlen(message)+1) == -1) {
-			runLog("Erreur d'envoi pour le client", 50);
-			runLog(joueurs[i]->info.nom, 50);
-		}	
-		else {
-			runLog("Envoi correct pour le client", 50);
-			runLog(joueurs[i]->info.nom, 50);
+	for (i = 0; i < MAX_JOUEURS; ++i) {
+		if (joueurs[i]) {
+			if (write(joueurs[i]->sock_desc,message,strlen(message)+1) == -1) {
+				runLog("Erreur d'envoi pour le client", 50);
+				runLog(joueurs[i]->info.nom, 50);
+			}	
+			else {
+				runLog("Envoi correct pour le client", 50);
+				runLog(joueurs[i]->info.nom, 50);
+			}
 		}
 	}
 }
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/**
+ * @brief gère les signaux 
+ * @param nomSignal : l'int du signal (SIGINT)
+ */
+void gestionSignal(int nomSignal){
+  int i;
+  runLog("Signal reçu:", 50);
+  runLog(strsignal(nomSignal), 50);
+  /* Warn the clients that the server is closing */
+  if (nomSignal == SIGINT) {
+	for (i = 0; i < MAX_JOUEURS; i++) {
+		if (joueurs[i]) {
+			envoiTous("Déconnexion Serveur.");
+	  	close(joueurs[i]->nouv_sock);
+	  	free(joueurs[i]);
+		}
+	}
+    close(descripteurSocket);
+  }
+  exit(nomSignal);
+}
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/**
+ * @brief fonction par client
+ */
 void* loop_joueur(void* arg){
-
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
@@ -340,14 +368,17 @@ void ajoutJoueur(Jeu* jeu, Joueur* joueur) {
 		}
 		nbJoueursCourants++;
 }
-
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/* Fonction Principale */
 int main(int argc, char** argv) {
 	if (argc == 2) {
-
 		pthread_t threadJeu;
 		pthread_t threadJoueur;
-		//pthread_t threadEcoute; 
 		//TODO:faudrait check les arguments d'entrée
+		//gestion de signaux pour la terminaison du programme
+		signal(SIGTERM, gestionSignal);
+		signal(SIGINT, gestionSignal);
 		//on commence par initialiser le "jeu"
 		Jeu* jeu;
 		jeu = malloc(sizeof(Jeu));
