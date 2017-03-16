@@ -220,10 +220,15 @@ int main(int argc, char **argv) {
 	char* nomClient;
 	int numeroPort;
 	if (argc != 4) {
-		perror("usage : client <adresse-serveur> <numero-port> <client-name>");
+		perror("usage : client <adresse-serveur> <numero-port> <client-name> \n <client-name> ne doit possede d'espace");
 		exit(1);
 	}
 	
+	if (strlen(argc[3]) > 13){
+		perror("usage : <client-name> ne peut pas faire plus de 13 caracteres");
+		exit(1);	
+	}
+
 	prog = argv[0];
 	host = argv[1];
 	numeroPort = atoi(argv[2]);
