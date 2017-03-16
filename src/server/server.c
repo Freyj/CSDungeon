@@ -1,7 +1,7 @@
 /**
  * @Authors : Charlène Servantie, Charles-Eric Begaudeau
  * @Date : 2017
- * @Version : 0.1
+ * @Version : 0.2
  * @brief : 
 */
 
@@ -29,68 +29,53 @@ Serveur à lancer avant le client
 #define TAILLE_MAX_NOM 256
 #define MAX_JOUEURS 16
 
+static int nbJoueursCourants = 0;
+
 typedef struct sockaddr sockaddr;
-
 typedef struct sockaddr_in sockaddr_in;
-
 typedef struct hostent hostent;
-
 typedef struct servent servent;
 
-/* Structure pour les armes 
-typedef struct arme {
-	char* nom;
-	int estMagique;
-	int degats;
-	int precision;
-}arme;
-*/
 /* Structure pour stocker les infos d'un personnage */
-typedef struct infoclient {
+typedef struct _InfoJoueur {
 	/* nom  */
 	char* nom;
 	/* caractéristiques */
 	int pv;
 	int pvMax;
 	int exp;
-	//int niveau;
 	int force;
-	//int magie;
-	//int technique;
-	//int vitesse;
-	//int chance;
-	//int defense;
-	//int resistance;
-	//arme arme;
-	/*socket associé */
-	int sock;
-}infoclient;
+	int nbTues;
+}InfoJoueur;
 
+typedef struct _Client {
+	InfoJoueur info;
+	int sock_desc;
+	int nouv_sock;
+	int longueur_adresse_courante;
+	sockaddr_in adresse_locale;
+	sockaddr_in adresse_client;
+	hostent* ptr_hote;
+	char* host;
+}Client;
 
-typedef struct _donneesThread{
- // Server *server;
-  int sock_send;
-  int sock_read;
-  int status;
-  char* buffer_send;
-  char* buffer_read;
-  pthread_t thread_read;
-  pthread_t  thread_send;
-  pthread_mutex_t mutex_data;
-} donneesThread;
-
-
-typedef struct _ennemis{
+typedef struct _Ennemis{
 	int pvEn1;
 	int pvEn2;
 	int pvEn3;
 } Ennemis;
 
-typedef struct _jeu{
-	int Ennemis[3];
-	Client clients[16];
-	int nbClients;
+typedef struct _Jeu{
+	Ennemis* ennemis;
+	Client* clients;
+	int nbJoueurs;
 	int nbTour;
+	pthread_t* threadsClients;
+	pthread_t* threadJeu;
+	pthread_t* threadEcoute; 
+	pthread_mutex_t mutex_Jeu;
+	int port;
+	char* nomServeur;
 } Jeu;
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
@@ -111,37 +96,67 @@ char* heure() {
 /**
  * @brief Fonction pour logger les erreurs dans un fichier
  * @param erreur le message en char*
+ * @param threadNb le nb du thread pour debug 
  */
-void runLog(char* erreur) {
+void runLog(char* erreur, int threadNb) {
   FILE* file = fopen("logServeur.log", "a");
   if (file == NULL) {
 	printf("Erreur d'ouverture de fichier de log!\n");
 	exit(1);
   }
   char* time = heure();
-  fprintf(file, "%s %s : %s \n", "[**Serveur**]", time, erreur);
+  char* thread = "Thread";
+  if (threadNb == 0){
+  	thread = "[*Serveur*][main Thread]:";
+  }
+  else if(threadNb == 1){
+  	thread = "[*Serveur*] [*Thread 1*]:";
+  }
+  else if(threadNb == 2){
+  	thread = "[*Serveur*] [*Thread 2*]:";
+  }
+  else if(threadNb == 3){
+  	thread = "[*Serveur*] [*Thread 3*]:";
+  }
+  fprintf(file, "%s %s : %s \n", thread, time, erreur);
   fclose(file);
   free(time);
 }
-
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 /**
  * @brief Fonction pour logger les erreurs dans un fichier
  * fonctionne pour les int
  * @param erreur le message en int
+ * @param threadNb le nb du thread pour debug 
  */
-void runLogInt(int erreur) {
+void runLogInt(int erreur, int threadNb) {
   FILE* file = fopen("logServeur.log", "a");
   if (file == NULL) {
 	printf("Erreur d'ouverture de fichier de log!\n");
 	exit(1);
   }
   char* time = heure();
-  fprintf(file, "%s %s : %d \n", "[**Serveur**]", time, erreur);
+  char* thread = "Thread";
+  if (threadNb == 0){
+  	thread = "[**Serveur**][main Thread]:";
+  }
+  else if(threadNb == 1){
+  	thread = "[**Serveur**] [*Thread 1*]:";
+  }
+  else if(threadNb == 2){
+  	thread = "[**Serveur**] [*Thread 2*]:";
+  }
+  else if(threadNb == 3){
+  	thread = "[**Serveur**] [*Thread 3*]:";
+  }
+  else {
+  	thread = "[**Serveur**][*No thread*]:";
+  }
+  fprintf(file, "%s %s : %d \n", thread, time, erreur);
   fclose(file);
   free(time);
 }
-
-
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 void renvoi(int sock) {
@@ -150,12 +165,11 @@ void renvoi(int sock) {
 	if ((longueur = read(sock, buffer, sizeof(buffer))) <= 0) {
 		return;
 	}
-	runLog(buffer);
+	runLog(buffer, 50);
 	printf("message lu: %s \n", buffer);
 
 	memset(&buffer, 0, 1);
 }
-
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /**
@@ -168,18 +182,22 @@ Ennemis* genEnnemis(Ennemis* en){
 	en->pvEn3 = 20;
 	return en;
 }
-
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 /**
  * @brief fonction vérifiant qu'un groupe n'est pas mort
  */
 
 int ennemisElimines(Ennemis* en) {
-	runLogInt(en->pvEn1);
+	runLog("Check d'ennemis éliminés", 50);
+	runLogInt(en->pvEn1, 50);
 	if ((en->pvEn1 < 1) && (en->pvEn2 < 1) && (en->pvEn3 < 1)) {
 		return 1;
 	}
 	return 0;
 }
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 /**
  * @brief fonction lançant une attaque sur un groupe
  */
@@ -187,31 +205,43 @@ void attaque(Ennemis* en, int degats) {
 	if (ennemisElimines(en) == 0) {
 		if (en->pvEn1 > 0 ) {
 			en->pvEn1 = en->pvEn1 - degats;
-			runLog("ennemi 1 tapé");
+			runLog("ennemi 1 tapé", 50);
 		}
 		else if(en->pvEn2 > 0 ) {
 			en->pvEn2 = en->pvEn2 - degats;
-			runLog("ennemi 2 tapé");
+			runLog("ennemi 2 tapé", 50);
 		}
 		else if(en->pvEn3 > 0 ) {
 			en->pvEn3 = en->pvEn3 - degats;
-			runLog("ennemi 3 tapé");
+			runLog("ennemi 3 tapé", 50);
 		}
 	}
-	runLog("ennemis tues");
-	
+	runLog("ennemis tues", 50);
 }
-
-
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 /**
  * @brief fonction qui soigne
+ * TODO: do
  */
-void soigner(){
+void soigner() {
 
 }
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/** 
+ * Fonction qui gère le tour
+ */ 
+void* tourDeJeu(void* arg) {
+	Jeu* jeu = (Jeu*) arg;
 
+	pthread_mutex_lock(&jeu->mutex_Jeu);
+	pthread_mutex_unlock(&jeu->mutex_Jeu);
+	return NULL;
 
-
+}
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 /**
  * @brief Fonction réagissant à l'action d'un client
  */ 
@@ -222,35 +252,84 @@ void action(int sock, Ennemis* en) {
 		return;
 	}
 	//on prévient le client qu'il a fait quelque chose
-	char* reponse;
+	//char* reponse;
 
-	if (strcmp(buffer, "Attaque") == 0) {
-		//attaque(en, 2);
-		reponse = "Vous avez attaqué";
-		write(sock,reponse,strlen(reponse)+1);   
-	}
-	if (strcmp(buffer, "Soigner") == 0) {
-		soigner();
-		reponse = "Vous vous êtes soigné";
-		write(sock,reponse,strlen(reponse)+1);   
-	}
+	// if (strcmp(buffer, "Attaque") == 0) {
+	// 	//attaque(en, 2);
+	// 	reponse = "Vous avez attaqué";
+	// 	write(sock,reponse,strlen(reponse)+1);   
+	// }
+	// if (strcmp(buffer, "Soigner") == 0) {
+	// 	soigner();
+	// 	reponse = "Vous vous êtes soigné";
+	// 	write(sock,reponse,strlen(reponse)+1);   
+	// }
 	//0 est un int, et équivalent à \0
 	memset(&buffer, 0, 1);
 }
-
 /**
  *  @brief initialisation du serveur
  */ 
-void initServer() {
-	Ennemis* groupeEnnemis = malloc(sizeof(Ennemis));
+void initServer(Jeu* jeu, int port) {
+	//comme on modifie le jeu
+	runLog("début d'initialisation", 0);
+	//théoriquement, le mutex n'est pas nécessaire ici, mais au cas où
+    pthread_mutex_lock(&jeu->mutex_Jeu);
+    //initialisation des adversaires
+    Ennemis* groupeEnnemis = malloc(sizeof(Ennemis));
 	groupeEnnemis = genEnnemis(groupeEnnemis);
+	jeu->ennemis = groupeEnnemis;
+	runLog("Pvs de l'ennemi 1 pour test", 0);
+	runLogInt(jeu->ennemis->pvEn1, 0);
+	//compteur de tours
+	jeu->nbTour = 0;
+	//initialisation d'un tableau de clients
+	jeu->clients = NULL;//?
+	jeu->nbJoueurs = 0;
+	//init threads
+	jeu->threadsClients = malloc(sizeof(pthread_t));
+	jeu->threadJeu = malloc(sizeof(pthread_t));
+	jeu->threadEcoute = malloc(sizeof(pthread_t));
 
+	jeu->port = port;
+	jeu->nomServeur = malloc(sizeof(char) * TAILLE_MAX_NOM);
+	gethostname(jeu->nomServeur,TAILLE_MAX_NOM);
+
+	pthread_mutex_unlock(&jeu->mutex_Jeu);
+	runLog("initialisation terminée", 0);
+}
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/**
+ * @brief broadcast les infos du tour aux clients
+ *	cf protocole
+ * @details log les envois
+ */
+void broadcast(int port, Jeu* jeu, char* message){
+	int i;
+	for (i = 0; i < jeu->nbJoueurs; ++i) {
+		if (write(jeu->clients[i].sock_desc,message,strlen(message)+1) == -1) {
+			runLog("Erreur d'envoi pour le client", 50);
+			runLog(jeu->clients[i].info.nom, 50);
+		}	
+		else {
+			runLog("Envoi correct pour le client", 50);
+			runLog(jeu->clients[i].info.nom, 50);
+		}
+	}
 }
 
+/**
+ *  @brief fonction d'écoute
+ */
 
-int main(int argc, char** argv) {
-	if (argc == 2) {
-		int 
+void* ecoute(void* arg){
+	//Jeu jeu = (Jeu) arg;
+	runLog("I am listening!", 1);
+	Jeu* jeu = (Jeu*) arg;
+	//threads des clients
+	pthread_t threadsClients[MAX_JOUEURS];
+	int 
 		socket_descriptor, /* descripteur de socket */
 		nouv_socket_descriptor, /* [nouveau] descripteur de socket */
 		longueur_adresse_courante; /* longueur d'adresse courante d'un client */
@@ -260,16 +339,11 @@ int main(int argc, char** argv) {
 			adresse_client_courant; /* adresse client courant */
 	
 		hostent* ptr_hote; /* les infos recuperees sur la machine hote */
-//		servent* ptr_service; /* les infos recuperees sur le service de la machine */
-		char machine[TAILLE_MAX_NOM+1]; 
-		//generation d'un grp d'ennemi
-		//FIXME: probleme de malloc 
-
-		/* nom de la machine locale */
-		gethostname(machine,TAILLE_MAX_NOM);
+		//servent* ptr_service; /* les infos recuperees sur le service de la machine */
 		/* recuperation du nom de la machine */
 		/* recuperation de la structure d'adresse en utilisant le nom */
-		if ((ptr_hote = gethostbyname(machine)) == NULL) {
+
+		if ((ptr_hote = gethostbyname(jeu->nomServeur)) == NULL) {
 			perror("erreur : impossible de trouver le serveur a partir de son nom.");
 			exit(1);
 		}    
@@ -280,13 +354,10 @@ int main(int argc, char** argv) {
 		/* ou AF_INET */
 		adresse_locale.sin_addr.s_addr = INADDR_ANY; 
 		/* ou AF_INET */
+		//on affecte le port qui a été donné en commande
 
-		adresse_locale.sin_port = htons(atoi(argv[1]));
+		adresse_locale.sin_port = htons(jeu->port);
 		
-		Ennemis* groupeEnnemis = malloc(sizeof(Ennemis));
-		groupeEnnemis = genEnnemis(groupeEnnemis);
-
-
 		/*-----------------------------------------------------------*/
 		printf("numero de port pour la connexion au serveur : %d \n", 
 		ntohs(adresse_locale.sin_port) /*ntohs(ptr_service->s_port)*/);
@@ -305,13 +376,12 @@ int main(int argc, char** argv) {
 		/* initialisation de la file d'ecoute */
 		listen(socket_descriptor,5);
 		
-		/* Thread d'écoute du serveur */
 
 		/* attente des connexions et traitement des donnees recues */
 		for(;;) {
 			longueur_adresse_courante = sizeof(adresse_client_courant);
 			/* adresse_client_courant sera renseignée par accept via les infos du connect */
-			if ((nouv_socket_descriptor =  accept(socket_descriptor, (sockaddr*) (&adresse_client_courant), &longueur_adresse_courante)) < 0) {
+			if (( nouv_socket_descriptor  =  accept(socket_descriptor, (sockaddr*) (&adresse_client_courant), &longueur_adresse_courante)) < 0) {
 				perror("erreur : impossible d'accepter la connexion avec le client.");
 				exit(1);
 			}
@@ -319,12 +389,135 @@ int main(int argc, char** argv) {
 			printf("reception d'un message.\n");
 			int i = 0;
 				while (i < 2000){
-				action(nouv_socket_descriptor, groupeEnnemis);
+				//action(nouv_socket_descriptor, groupeEnnemis);
 //				renvoi(nouv_socket_descriptor);
-				close(nouv_socket_descriptor);
+				//close(nouv_socket_descriptor);
 				++i;
 			}
 		}
+
+
+
+	return NULL;
+}
+
+
+int main(int argc, char** argv) {
+	if (argc == 2) {
+
+		pthread_t threadJeu;
+		//pthread_t threadEcoute; 
+		//TODO:faudrait check les arguments d'entrée
+		//on commence par initialiser le "jeu"
+		Jeu* jeu;
+		jeu = malloc(sizeof(Jeu));
+		initServer(jeu, atoi(argv[1]));
+		
+		//une fois que le jeu est initialisé, on lance l'écoute 
+		//int resultatEcoute = pthread_create(&threadEcoute, NULL, ecoute, (void*) jeu);
+		//si le thread d'écoute échoue
+		//if (resultatEcoute != 0) {
+		//	runLog("Echec du thread d'écoute", 0);
+		//	runLogInt(resultatEcoute, 0);
+		//	return 1;
+		//}
+		//puis on lance le "jeu" 
+		int resultatJeu = pthread_create(&threadJeu, NULL, tourDeJeu, (void*) jeu);
+		//si le thread de jeu échoue
+		if (resultatJeu != 0) {
+			runLog("Echec du thread de jeu", 0);
+			runLogInt(resultatJeu, 0);
+			return 1;			
+		}
+
+
+
+		int 
+		socket_descriptor, /* descripteur de socket */
+		new_socket_descriptor, /* [nouveau] descripteur de socket */
+		longueur_adresse_courante; /* longueur d'adresse courante d'un client */
+	
+		sockaddr_in 
+			adresse_locale, /* structure d'adresse locale*/
+			adresse_client_courant; /* adresse client courant */
+	
+		hostent* ptr_hote; /* les infos recuperees sur la machine hote */
+//		servent* ptr_service; /* les infos recuperees sur le service de la machine */
+
+		/* recuperation du nom de la machine */
+		/* recuperation de la structure d'adresse en utilisant le nom */
+		if ((ptr_hote = gethostbyname(jeu->nomServeur)) == NULL) {
+			perror("erreur : impossible de trouver le serveur a partir de son nom.");
+			exit(1);
+		}    
+		/* initialisation de la structure adresse_locale avec les infos recuperees */
+		/* copie de ptr_hote vers adresse_locale */
+		bcopy((char*)ptr_hote->h_addr, (char*)&adresse_locale.sin_addr, ptr_hote->h_length);
+		adresse_locale.sin_family = ptr_hote->h_addrtype; 
+		/* ou AF_INET */
+		adresse_locale.sin_addr.s_addr = INADDR_ANY; 
+		/* ou AF_INET */
+		//on affecte le port qui a été donné en commande
+
+		adresse_locale.sin_port = htons(atoi(argv[1]));
+		
+		/*-----------------------------------------------------------*/
+		printf("numero de port pour la connexion au serveur : %d \n", 
+		ntohs(adresse_locale.sin_port) /*ntohs(ptr_service->s_port)*/);
+		/* creation de la socket */
+		if ((socket_descriptor = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+			perror("erreur : impossible de creer la socket de connexion avec le client.");
+			exit(1);
+		}
+
+		/* association du socket socket_descriptor à la structure d'adresse adresse_locale */
+		if ((bind(socket_descriptor, (sockaddr*)(&adresse_locale), sizeof(adresse_locale))) < 0) {
+			perror("erreur : impossible de lier la socket a l'adresse de connexion.");
+			exit(1);
+		}
+		
+		/* initialisation de la file d'ecoute */
+		listen(socket_descriptor,MAX_JOUEURS);
+		
+
+		/* attente des connexions et traitement des donnees recues */
+		for(;;) {
+			longueur_adresse_courante = sizeof(adresse_client_courant);
+			/* adresse_client_courant sera renseignée par accept via les infos du connect */
+			if ((new_socket_descriptor =  accept(socket_descriptor, (sockaddr*) (&adresse_client_courant), &longueur_adresse_courante)) < 0) {
+				perror("erreur : impossible d'accepter la connexion avec le client.");
+				exit(1);
+			}
+			/* traitement du message */
+			runLog("reception d'un message.\n", 0);
+			int i = 0;
+				while (i < 2000){
+				//action(nouv_socket_descriptor, groupeEnnemis);
+//				renvoi(nouv_socket_descriptor);
+				++i;
+			}
+		}
+		/* on verifie que le nbJoueurs est pas max */
+	    if ( (jeu->nbJoueurs+1) == MAX_JOUEURS){
+	     	runLog("Trop de joueurs connectés\n", 0);
+	      	close(new_socket_descriptor);
+	    }
+		//int result_code = (int) pthread_join(&threadEcoute, NULL);
+
+	    /* Client settings and handling */
+	    //client = (client *)calloc((sizeof(client)), 1);
+	    //cli->addr = cli_addr;
+	    //cli->cli_co = new_socket_descriptor;
+	    //cli->id = id++;
+	    //sprintf(cli->name, "%d", cli->id);
+	    //printf("Client connected, using the id: %d\n", cli->id);
+
+	    //add_client(cli);
+	    //pthread_create(&thread, NULL, client_loop, (void *)cli);
+		//if(result_code == 0) {
+
+		//}
+		free(jeu);
 	}
 	else {
 		perror("La bonne commande est ./csServ [port]");

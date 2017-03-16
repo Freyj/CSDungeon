@@ -77,7 +77,7 @@ void sendMessage(int port, char* host, char* mesg) {
 	adresse_locale.sin_family = AF_INET; /* ou ptr_host->h_addrtype; */
 
 	//adresse_locale.sin_port = htons(7332); // why port 7332 ?
-	adresse_locale.sin_port = htons(5000);
+	adresse_locale.sin_port = htons(port);
 
 	printf("numero de port pour la connexion au serveur : %d \n", ntohs(adresse_locale.sin_port));
 
