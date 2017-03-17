@@ -435,7 +435,7 @@ int main(){
 	decode(m2);
 
 	char* m3 = calloc(100, 1);
-	m3 = "206030003ELDRADBOB002";
+	m3 = "206030003EldradBOB002";
 	decode(m3);
 	char* m4 = calloc(100, 1);
 	m4 = "306030003ELDRADBOB002";

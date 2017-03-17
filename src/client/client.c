@@ -482,15 +482,31 @@ char * genMessage (int port, char* host, char* nomClient){
 
 
 void* Ecoute(void* arg) {
-	char buffer[256];
+	int socket_descriptor, /* descripteur de socket */
+	new_socket_descriptor, /* [nouveau] descripteur de socket */
+	longueur_adresse_courante; /* longueur d'adresse courante d'un client */
+	
+	sockaddr_in 
+		adresse_locale, /* structure d'adresse locale*/
+		adresse_client_courant; /* adresse client courant */
+
+	hostent* ptr_hote;	char buffer[256];
 	int longueur;
-	if ((longueur = read(new_socket_descriptor, buffer, sizeof(buffer))) <= 0) {
-		return 1;
+	for(;;) {
+		longueur_adresse_courante = sizeof(adresse_client_courant);
+		/* adresse_client_courant sera renseignee par accept via les infos du connect */
+		//on assigne le nom du joueur sur le message
+		char buffer[256];
+		int longueur;
+		if ((longueur = read(new_socket_descriptor, buffer, sizeof(buffer))) <= 0) {
+			return 1;
+		}
+		/* évite les soucis de buffer */
+		buffer[longueur] = '\0';
+		printf("Message reçue.\n");
+		printf("%s\n", buffer);
 	}
 
-	buffer[longueur] = '\0';
-	printf("Connexion reçue.\n");
-	printf("%s\n", buffer);
 }
 
 
@@ -514,7 +530,7 @@ int main(int argc, char **argv) {
 	}
 	
 	pthread_t threadEcoute;
-	int resultatEcoute = pthread_create(&threadEcoute, NULL, Ecoute, (void*) jeu);
+	int resultatEcoute = pthread_create(&threadEcoute, NULL, Ecoute, NULL);
 
 
 	prog = argv[0];
