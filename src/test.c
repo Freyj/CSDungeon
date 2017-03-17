@@ -96,11 +96,11 @@ void decode(char* mesg) {
 		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
 		//nomCibleLongueur inutile;						//3 | 4
 		//typeDeModification inutile					//5
-		donneesLongueur = getDonneesLongueur(mesg);		//6 | 7 | 8
+		//donneesLongueur inutile						//6 | 7 | 8
 		nomSource = calloc(nomSourceLongueur+1, 1);
 		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
-		printf("Type de message : CONNEXION \nLongueurNomSource : %i LongueurDonnees : %i \nNomSource : %s\n",
-		 nomSourceLongueur, donneesLongueur, nomSource);
+		printf("Type de message : CONNEXION \nLongueurNomSource : %i \nNomSource : %s\n",
+		 nomSourceLongueur, nomSource);
 		free(nomSource);
 	}else if(mesg[0] == '1'){							//0
 		//attaque
@@ -186,10 +186,26 @@ void decode(char* mesg) {
 			nomsClients[i] = calloc(longueurNomClient[i]+1, 1);
 			strncpy(nomsClients[i], &mesg[offset], longueurNomClient[i]);
 			//printf("nomClient a la position : %i -- %s\n", i, nomsClients[i]);
-			printf("%i/ %s\n", i, nomsClients[i]);
+			printf("%i/ %s\n", i+1, nomsClients[i]);
 			offset = longueurNomClient[i] + offset;
 		}
 
+	}else if(mesg[0] == '6'){							//0
+		//Deconnexion
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomSource = calloc(nomSourceLongueur+1, 1);
+		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
+		printf("Type de message : DECONNEXION \nLongueurNomSource : %i\nNomSource : %s\n",
+		 nomSourceLongueur, nomSource);
+		free(nomSource);
+	}else if(mesg[0] == '7'){							//0
+		//Obtenir liste de client
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomSource = calloc(nomSourceLongueur+1, 1);
+		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
+		printf("Type de message : DEMANDE LISTE DES CLIENTS \nLongueurNomSource : %i\nNomSource : %s\n",
+		 nomSourceLongueur, nomSource);
+		free(nomSource);
 	}else{
 		perror("erreur : message errone.");
 		exit(1);
@@ -214,6 +230,7 @@ int main(){
 	//	  0123456789 11 14 17
 	m2 = "106030003ELDRADBOB002";
 	decode(m2);
+
 	char* m3 = calloc(100, 1);
 	m3 = "206030003ELDRADBOB002";
 	decode(m3);
@@ -226,6 +243,12 @@ int main(){
 	char* m6 = calloc(100, 1);
 	m6 = "506060302100405ELDRADBOBXILUMINACALIJULEFREYA";
 	decode(m6);
+	char* m7 = calloc(100, 1);
+	m7 = "606000000ELDRAD";
+	decode(m7);
+	char* m8 = calloc(100, 1);
+	m8 = "706000000ELDRAD";
+	decode(m8);
 
 	free(m1);
 	free(m2);
@@ -233,5 +256,8 @@ int main(){
 	free(m4);
 	free(m5);
 	free(m6);
+	free(m7);
+	free(m8);
+	printf("FIN\n");
 }
 
