@@ -179,6 +179,7 @@ void retraitJoueur(Joueur* joueur){
 /*------------------------------------------------------*/
 /** 
  * Fonction qui gere le tour
+ * @TODO: purger et faire des fonctions
  */ 
 void* tourDeJeu(void* arg) {
 	while(jeu->nbTour < 20) {
@@ -187,7 +188,41 @@ void* tourDeJeu(void* arg) {
 			if (joueurs[joueurTour]) {
 				//le joueur existe, on verrouille pour pouvoir faire quelque chose
 				pthread_mutex_lock(&joueurs[joueurTour]->mutex_Joueur);
-				
+				runLog("Joueur recu", 15);
+				decode(joueurs[joueurTour]->bufferAction);
+				char* message;
+				if(joueurs[joueurTour]->bufferAction[0] == '7') {
+					message = genMessage(jeu->port, jeu->nomServeur, "serveur", "rien", 7, 0);
+				}
+				else if (joueurs[joueurTour]->bufferAction[0] == '1') {
+					int nomSourceLongueur;
+					int nomCibleLongueur;
+					int donneesLongueur;
+					char* nomCible;
+					//attaque
+					nomSourceLongueur = getSourceLongueur(joueurs[joueurTour]->bufferAction);	//1 | 2
+					nomCibleLongueur = getCibleLongueur(joueurs[joueurTour]->bufferAction);		//3 | 4
+					//typeDeModification inutile					//5
+					donneesLongueur = getDonneesLongueur(joueurs[joueurTour]->bufferAction);
+					nomCible = calloc(nomCibleLongueur+1, 1);
+					strncpy(nomCible, &joueurs[joueurTour]->bufferAction[9 + nomSourceLongueur], nomCibleLongueur);
+					message = genMessage(jeu->port, jeu->nomServeur, joueurs[joueurTour]->nomJoueur, nomCible, 1, 0);
+				}
+				else if (joueurs[joueurTour]->bufferAction[0] == '2') {
+					int nomSourceLongueur;
+					int nomCibleLongueur;
+					int donneesLongueur;
+					char* nomCible;
+					//attaque
+					nomSourceLongueur = getSourceLongueur(joueurs[joueurTour]->bufferAction);	//1 | 2
+					nomCibleLongueur = getCibleLongueur(joueurs[joueurTour]->bufferAction);		//3 | 4
+					//typeDeModification inutile					//5
+					donneesLongueur = getDonneesLongueur(joueurs[joueurTour]->bufferAction);
+					nomCible = calloc(nomCibleLongueur+1, 1);
+					strncpy(nomCible, &joueurs[joueurTour]->bufferAction[9 + nomSourceLongueur], nomCibleLongueur);
+					message = genMessage(jeu->port, jeu->nomServeur, joueurs[joueurTour]->nomJoueur, nomCible, 2, 1);
+				}
+				envoiTous(message);
 				pthread_mutex_unlock(&joueurs[joueurTour]->mutex_Joueur);
 			}
 			else {
@@ -375,18 +410,346 @@ Joueur* initJoueur(sockaddr_in adresse_locale, int nouv_sock) {
 	return joueur;
 }
 
-/** 
- * Decode les messages reçus
- */
-void decode(char* mesg){
+void sendMessage(int port, char* host, char* mesg) {
+	int socket_descriptor; 		/* descripteur de socket */
+	int longueur; 				/* longueur d'un buffer utilisé */
+
+	sockaddr_in adresse_locale; /* adresse de socket local */
+
+	hostent* ptr_host;  		/* info sur une machine hote */
+	servent* ptr_service;  		/* info sur service */
+
+	char buffer[256];
+	if ((ptr_host = gethostbyname(host)) == NULL) {
+		perror("erreur : impossible de trouver le serveur a partir de son adresse.");
+		exit(1);
+	}
+	/* copie caractere par caractere des infos de ptr_host vers adresse_locale */
+	bcopy((char*)ptr_host->h_addr, (char*)&adresse_locale.sin_addr, ptr_host->h_length);
+	adresse_locale.sin_family = AF_INET; /* ou ptr_host->h_addrtype; */
+
+	//adresse_locale.sin_port = htons(7332); // why port 7332 ?
+	adresse_locale.sin_port = htons(port);
+
+	printf("numero de port pour la connexion au serveur : %d \n", ntohs(adresse_locale.sin_port));
+
+	/* creation de la socket */
+	if ((socket_descriptor = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("erreur : impossible de creer la socket de connexion avec le serveur.");
+		exit(1);
+	}
+
+	/* tentative de connexion au serveur dont les infos sont dans adresse_locale */
+	if ((connect(socket_descriptor, (sockaddr*)(&adresse_locale), sizeof(adresse_locale))) < 0) {
+		perror("erreur : impossible de se connecter au serveur.");
+		exit(1);
+	}
+	if ((write(socket_descriptor, mesg, strlen(mesg))) < 0) {
+		perror("erreur : impossible d'ecrire le message destine au serveur.");
+		exit(1);
+	}
+	printf("message envoye au serveur. \n");
+	//write(1,buffer,longueur);
+	//return (longueur = read(socket_descriptor, buffer, sizeof(buffer)));
+	while((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
+		printf("reponse du serveur : \n");
+		write(1,buffer,longueur);
+    }
+    printf("\n");
+    close(socket_descriptor);
 
 }
+
+
+
+
+int digit_to_int(char d){
+	char str[2];
+	str[0] = d;
+	str[1] = '\0';
+	return (int) strtol(str, NULL, 10);
+}
+
+int getSourceLongueur(char* mesg){
+	//printf("int getSourceLongueur(char* mesg) \n");
+	int nomSourceLongueur;
+	nomSourceLongueur = 0;
+	nomSourceLongueur = nomSourceLongueur + 10 * digit_to_int(mesg[1]);
+	nomSourceLongueur = nomSourceLongueur + digit_to_int(mesg[2]);
+	//printf("nomSourceLongueur : %i\n", nomSourceLongueur);
+	return nomSourceLongueur;
+}
+
+int getCibleLongueur(char* mesg){
+	//printf("int getCibleLongueur(char* mesg) \n");
+	int nomCibleLongueur;
+	nomCibleLongueur = 0;
+	nomCibleLongueur = nomCibleLongueur + 10 * digit_to_int(mesg[3]);
+	nomCibleLongueur = nomCibleLongueur + digit_to_int(mesg[4]);
+	//printf("nomCibleLongueur : %i\n", nomCibleLongueur);
+	return nomCibleLongueur;
+}
+
+int getDonneesLongueur(char* mesg){
+	//printf("int getDonneesLongueur(char* mesg) \n");
+	int donneesLongueur;
+	donneesLongueur = 0;
+	donneesLongueur = donneesLongueur + 100 * digit_to_int(mesg[6]);
+	donneesLongueur = donneesLongueur + 10 * digit_to_int(mesg[7]);
+	donneesLongueur = donneesLongueur + digit_to_int(mesg[8]);
+	//printf("donneesLongueur : %i\n", donneesLongueur);
+	return donneesLongueur;
+}
+
+int getPointsDeVie(char* mesg, int offset){
+	//printf("int getPointsDeVie(char* mesg, int offset) \n");
+	int pointsDeVie;
+	pointsDeVie = 0;
+	pointsDeVie = pointsDeVie + 100 * digit_to_int(mesg[offset]);
+	pointsDeVie = pointsDeVie + 10 * digit_to_int(mesg[offset + 1]);
+	pointsDeVie = pointsDeVie + digit_to_int(mesg[offset + 2]);
+	//printf("pointsDeVie : %i\n", pointsDeVie);
+	return pointsDeVie;
+}
+
+int getNbClient(char* mesg){
+	//printf("int getNbClient(char* mesg) \n");
+	int nbClient;
+	nbClient = 0;
+	nbClient = nbClient + 10 * digit_to_int(mesg[1]);
+	nbClient = nbClient + digit_to_int(mesg[2]);
+	//printf("nbClient : %i\n", nbClient);
+	return nbClient;
+}
+
+int getLongueurNomClient(char* mesg, int offset){
+	//printf("int getLongueurNomClient(char* mesg) \n");
+	int longueurNomClient;
+	longueurNomClient = 0;
+	longueurNomClient = longueurNomClient + 10 * digit_to_int(mesg[offset]);
+	longueurNomClient = longueurNomClient + digit_to_int(mesg[offset + 1]);
+	//printf("longueurNomClient : %i\n", longueurNomClient);
+	return longueurNomClient;
+}
+
+
+void decode(char* mesg) {
+	int nomSourceLongueur;
+	int nomCibleLongueur;
+	int donneesLongueur;
+	int typeDeModification;
+	int pointsDeVie;
+	char* nomSource;
+	char* nomCible;
+	int longueurEntete;
+	longueurEntete = 9;
+	printf("\t\t");
+	printf(mesg);
+	printf("\n");
+	if(mesg[0] == '0'){									//0
+		//connexion
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		//nomCibleLongueur inutile;						//3 | 4
+		//typeDeModification inutile					//5
+		//donneesLongueur inutile						//6 | 7 | 8
+		nomSource = calloc(nomSourceLongueur+1, 1);
+		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
+		printf("Type de message : CONNEXION \nLongueurNomSource : %i \nNomSource : %s\n",
+		 nomSourceLongueur, nomSource);
+		free(nomSource);
+	}else if(mesg[0] == '1'){							//0
+		//attaque
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
+		//typeDeModification inutile					//5
+		donneesLongueur = getDonneesLongueur(mesg);		//6 | 7 | 8
+		nomSource = calloc(nomSourceLongueur+1, 1);
+		nomCible = calloc(nomCibleLongueur+1, 1);
+		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
+		strncpy(nomCible, &mesg[longueurEntete + nomSourceLongueur], nomCibleLongueur);
+		pointsDeVie = getPointsDeVie(mesg, longueurEntete + nomSourceLongueur + nomCibleLongueur);
+		printf("Type de message : ATTAQUE \nLongueurNomSource : %i LongueurNomCible : %i LongueurDonnees : %i \nPV : %i NomSource : %s NomCible : %s\n",
+		 nomSourceLongueur, nomCibleLongueur, donneesLongueur,
+		 pointsDeVie, nomSource, nomCible);
+		free(nomSource);
+		free(nomCible);
+	}else if(mesg[0] == '2'){							//0
+		//soigne
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
+		//typeDeModification inutile					//5
+		donneesLongueur = getDonneesLongueur(mesg);		//6 | 7 | 8
+		nomSource = calloc(nomSourceLongueur+1, 1);
+		nomCible = calloc(nomCibleLongueur+1, 1);
+		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
+		strncpy(nomCible, &mesg[longueurEntete + nomSourceLongueur], nomCibleLongueur);
+		pointsDeVie = getPointsDeVie(mesg, longueurEntete + nomSourceLongueur + nomCibleLongueur);
+		printf("Type de message : SOIGNE \nLongueurNomSource : %i LongueurNomCible : %i LongueurDonnees : %i \nPV : %i NomSource : %s NomCible : %s\n",
+		 nomSourceLongueur, nomCibleLongueur, donneesLongueur,
+		 pointsDeVie, nomSource, nomCible);
+		free(nomSource);
+		free(nomCible);
+	}else if(mesg[0] == '3'){							//0
+		//notification
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
+		typeDeModification = digit_to_int(mesg[5]);		//5
+		donneesLongueur = getDonneesLongueur(mesg);		//6 | 7 | 8
+		nomSource = calloc(nomSourceLongueur+1, 1);
+		nomCible = calloc(nomCibleLongueur+1, 1);
+
+		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
+		strncpy(nomCible, &mesg[longueurEntete + nomSourceLongueur], nomCibleLongueur);
+		pointsDeVie = getPointsDeVie(mesg, longueurEntete + nomSourceLongueur + nomCibleLongueur);
+		printf("Type de message : NOTIFICATION \nLongueurNomSource : %i LongueurNomCible : %i LongueurDonnees : %i \nTypeModification : %i PV : %i NomSource : %s NomCible : %s\n",
+		 nomSourceLongueur, nomCibleLongueur, donneesLongueur, typeDeModification,
+		 pointsDeVie, nomSource, nomCible);
+		free(nomSource);
+		free(nomCible);
+	}else if(mesg[0] == '4'){							//0
+		//mort
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
+		//typeDeModification inutile					//5
+		//donneesLongueur = getDonneesLongueur(mesg);	//6 | 7 | 8
+		nomSource = calloc(nomSourceLongueur+1, 1);
+		nomCible = calloc(nomCibleLongueur+1, 1);
+		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
+		strncpy(nomCible, &mesg[longueurEntete + nomSourceLongueur], nomCibleLongueur);
+		printf("Type de message : MORT \nLongueurNomSource : %i LongueurNomCible : %i \nNomSource : %s NomCible : %s\n",
+		 nomSourceLongueur, nomCibleLongueur, nomSource, nomCible);
+		free(nomSource);
+		free(nomCible);
+	}else if(mesg[0] == '5'){							//0
+		//Liste de client
+		printf("Type de message : LISTE DES CLIENTS \n");
+		int nbClient;
+		nbClient = getNbClient(mesg);					//1 | 2 NBCLIENT
+		int longueurNomClient[nbClient];
+		//char*
+		int offset = 0;
+		int i;
+		for(i = 0; i < nbClient; ++i){
+			offset = 2 * i + 3;
+			longueurNomClient[i] = getLongueurNomClient(mesg, offset);
+			//printf("longueurNomClient a la position : %i -- %i\n", i, longueurNomClient[i]);
+			//sommeLongueur = sommeLongueur + longueurNomClient[i];
+		}
+		offset = offset + 2;
+		char * nomsClients[nbClient];
+
+		for(i = 0; i < nbClient; ++i){
+			nomsClients[i] = calloc(longueurNomClient[i]+1, 1);
+			strncpy(nomsClients[i], &mesg[offset], longueurNomClient[i]);
+			//printf("nomClient a la position : %i -- %s\n", i, nomsClients[i]);
+			printf("%i/ %s\n", i+1, nomsClients[i]);
+			offset = longueurNomClient[i] + offset;
+		}
+
+	}else if(mesg[0] == '6'){							//0
+		//Deconnexion
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomSource = calloc(nomSourceLongueur+1, 1);
+		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
+		printf("Type de message : DECONNEXION \nLongueurNomSource : %i\nNomSource : %s\n",
+		 nomSourceLongueur, nomSource);
+		free(nomSource);
+	}else if(mesg[0] == '7'){							//0
+		//Obtenir liste de client
+		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
+		nomSource = calloc(nomSourceLongueur+1, 1);
+		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
+		printf("Type de message : DEMANDE LISTE DES CLIENTS \nLongueurNomSource : %i\nNomSource : %s\n",
+		 nomSourceLongueur, nomSource);
+		free(nomSource);
+	}else{
+		perror("erreur : message errone.");
+		exit(1);
+	}
+	printf("\n");
+}
+
 /** 
- * Encode les messages pour l'envoi
+ * @brief génère les messages à envoyer
  */
-char* encode(){
-	char* tempRes = "ENCODAGE";
-	return tempRes;
+char * genMessage(int port, char* host, char* nomSource, char* nomDest, int type, int tDm){
+	//requete liste client
+	char* message;
+	if(type == 7){
+		//boucle calculant la somme des noms 
+		int i;
+		int longueur = 0;
+		for (i = 0; i < nbJoueursCourants; ++i) {
+			longueur = longueur + strlen(joueurs[i]->nomJoueur);
+		}
+		message = calloc(1 + 2 * nbJoueursCourants + longueur, 1); 
+		message = "5";
+		for (i = 0; i < nbJoueursCourants; ++i) {
+			if(strlen(joueurs[i]->nomJoueur) > 9){
+				message = strcat(message, strlen(joueurs[i]->nomJoueur));
+			}else{
+				message = strcat(message, "0");
+				message = strcat(message, strlen(joueurs[i]->nomJoueur));
+			}
+		}
+
+		for (i = 0;i < nbJoueursCourants; ++i) {
+			message = strcat(message, joueurs[i]->nomJoueur);
+		}
+	}
+	//attaquer
+	else if (type == 1) {
+		int longueurNomDest = strlen(nomDest);
+		int longueurNomSource = strlen(nomSource);
+		message = calloc(1 + 2 + 2 + 3 + 1 + longueurNomDest + longueurNomSource + 3, 1);
+		message = "3";
+		//longueur des noms
+		if(longueurNomDest > 9){
+			message = strcat(message, longueurNomDest);
+		}else{
+			message = strcat(message, "0");
+			message = strcat(message, longueurNomDest);
+		}
+		if(longueurNomSource > 9){
+			message = strcat(message, longueurNomSource);
+		}else{
+			message = strcat(message, "0");
+			message = strcat(message, longueurNomSource);
+		}
+		//concat
+		message = strcat(message, "0");
+		message = strcat(message, "003");
+		message = strcat(message, nomSource);
+		message = strcat(message, nomDest);
+		message = strcat(message, "005");
+	}
+	//soigner
+	else if (type == 2) {
+			int longueurNomDest = strlen(nomDest);
+		int longueurNomSource = strlen(nomSource);
+		message = calloc(1 + 2 + 2 + 3 + 1 + longueurNomDest + longueurNomSource + 3, 1);
+		message = "3";
+		//longueur des noms
+		if(longueurNomDest > 9){
+			message = strcat(message, longueurNomDest);
+		}else{
+			message = strcat(message, "0");
+			message = strcat(message, longueurNomDest);
+		}
+		if(longueurNomSource > 9){
+			message = strcat(message, longueurNomSource);
+		}else{
+			message = strcat(message, "0");
+			message = strcat(message, longueurNomSource);
+		}
+		//concat
+		message = strcat(message, "1");
+		message = strcat(message, "003");
+		message = strcat(message, nomSource);
+		message = strcat(message, nomDest);
+		message = strcat(message, "005");
+	}
+	return message;
 }
 
 /*------------------------------------------------------*/

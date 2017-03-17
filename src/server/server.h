@@ -108,6 +108,14 @@ void gestionSignal(int nomSignal);
 void* loopJoueur(void* arg);
 void ajoutJoueur(Joueur* joueur);
 Joueur* initJoueur(sockaddr_in adresse_locale, int nouv_sock);
-//TODO
+
+void sendMessage(int port, char* host, char* mesg);
+int digit_to_int(char d);
+int getSourceLongueur(char* mesg);
+int getCibleLongueur(char* mesg);
+int getDonneesLongueur(char* mesg);
+int getPointsDeVie(char* mesg, int offset);
+int getNbClient(char* mesg);
+int getLongueurNomClient(char* mesg, int offset);
 void decode(char* mesg);
-char* encode();
+char * genMessage (int port, char* host, char* nomSource, char* nomDest, int type, int tDm);
