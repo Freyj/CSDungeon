@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 	
-	if (strlen(argc[3]) > 13){
+	if (strlen(argv[3]) > 13){
 		perror("usage : <client-name> ne peut pas faire plus de 13 caracteres");
 		exit(1);	
 	}

@@ -27,8 +27,9 @@ Serveur a lancer avant le client
 /* pour les signaux */
 #include <signal.h>
 
-#define TAILLE_MAX_NOM 256
+#define TAILLE_MAX_NOM 13
 #define MAX_JOUEURS 16
+#define TAILLE_BUFFER 256
 
 // pour compter les joueurs
 static int nbJoueursCourants = 0;
@@ -63,6 +64,7 @@ typedef struct _Joueur {
 	struct sockaddr_in adresse_client;
 	struct hostent* ptr_hote;
 	char* nomJoueur;
+	char* action;
 }Joueur;
 /* Structure des groupes d'ennemis */
 typedef struct _Ennemis{
@@ -187,9 +189,9 @@ void renvoi(int sock) {
  * @details 3 ennemis a 20 pv, pas encore de reglages
  */
 Ennemis* genEnnemis(Ennemis* en) {
-	en->pvEn1 = 20;
-	en->pvEn2 = 20;
-	en->pvEn3 = 20;
+	en->pvEn1 = 200;
+	en->pvEn2 = 200;
+	en->pvEn3 = 200;
 	return en;
 }
 /*------------------------------------------------------*/
@@ -210,18 +212,18 @@ int ennemisElimines(Ennemis* en) {
 /**
  * @brief fonction lançant une attaque sur un groupe
  */
-void attaque(Ennemis* en, int degats) {
-	if (ennemisElimines(en) == 0) {
-		if (en->pvEn1 > 0 ) {
-			en->pvEn1 = en->pvEn1 - degats;
+void attaque(int degats) {
+	if (ennemisElimines(jeu->ennemis) == 0) {
+		if (&jeu->ennemis->pvEn1 > 0 ) {
+			jeu->ennemis->pvEn1 = jeu->ennemis->pvEn1 - degats;
 			runLog("ennemi 1 tape", 50);
 		}
-		else if(en->pvEn2 > 0 ) {
-			en->pvEn2 = en->pvEn2 - degats;
+		else if(&jeu->ennemis->pvEn2 > 0 ) {
+			jeu->ennemis->pvEn2 = jeu->ennemis->pvEn2 - degats;
 			runLog("ennemi 2 tape", 50);
 		}
-		else if(en->pvEn3 > 0 ) {
-			en->pvEn3 = en->pvEn3 - degats;
+		else if(& jeu->ennemis->pvEn3 > 0 ) {
+			jeu->ennemis->pvEn3 = jeu->ennemis->pvEn3 - degats;
 			runLog("ennemi 3 tape", 50);
 		}
 	}
@@ -241,9 +243,13 @@ void soigner() {
  * Fonction qui gere le tour
  */ 
 void* tourDeJeu(void* arg) {
-	Jeu* jeu = (Jeu*) arg;
-	pthread_mutex_lock(&jeu->mutex_Jeu);
-	pthread_mutex_unlock(&jeu->mutex_Jeu);
+	//id du joueur dont c'est le tour
+	int joueurTour = 0;
+	while(jeu->nbTour < 20) {
+		pthread_mutex_lock(&jeu->mutex_Jeu);
+
+		pthread_mutex_unlock(&jeu->mutex_Jeu);
+	}
 	return NULL;
 }
 /*------------------------------------------------------*/
@@ -346,9 +352,32 @@ void gestionSignal(int nomSignal){
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /**
- * @brief fonction par client
+ * @brief fonction par client 
  */
-void* loop_joueur(void* arg){
+void* loopJoueur(void* arg){
+	Joueur* joueur = (Joueur*) arg;
+	char* buffer = NULL;
+	int length;
+	while ((length = read(joueur->nouv_sock, buffer, TAILLE_BUFFER)) > 0){
+	/* Add an end to the buffer */
+	buffer[length] = '\0';
+	}
+
+  	/* Client quit/disconnected */
+
+  	/* Notify the clients */
+  	runLog("Le joueur a quitte : ", 2);
+  	runLog(joueur->nomJoueur, 2);
+  	char* message = strcat("Le joueur a quitte", joueur->nomJoueur);
+  	envoiTous(message);
+  	close(joueur->nouv_sock);
+
+  	retraitJoueur(joueur);
+  	
+  	free(joueur);
+  	free(buffer);
+  	pthread_detach(pthread_self());
+	return NULL;
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
@@ -375,6 +404,7 @@ Joueur* initJoueur(sockaddr_in adresse_locale, int nouv_sock) {
 	joueur->adresse_locale = adresse_locale;
 	joueur->nouv_sock = nouv_sock;
 	joueur->joueurId = joueurIdCompteur++;
+	joueur->action = NULL;
 	InfoJoueur inf;
 	inf.pv = 100;
 	inf.pvMax = 100;
@@ -506,7 +536,7 @@ int main(int argc, char** argv) {
 			runLogInt(joueur->joueurId, 0);
 			runLog("Joueur connecte", 0);
 			ajoutJoueur(joueur);
-			pthread_create(&threadJoueur, NULL, loop_joueur, (void *)joueur);
+			pthread_create(&threadJoueur, NULL, loopJoueur, (void *)joueur);
 		}
 		free(jeu);
 	}
