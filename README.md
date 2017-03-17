@@ -1,11 +1,13 @@
 # CSDungeon
 
-##compile server
+# compile
+## compile server
 gcc ./server/server.c -o csServer -Wall -lpthread
-##compile client
+## compile client
 gcc ./client/client.c -o csClient -Wall -lpthread
 
-##use server
+# use 
+## use server
 ./csServer <port>
-##use client
+## use client
 ./csClient <adresse-serveur> <port> <message-a-transmettre>
