@@ -88,6 +88,7 @@ typedef struct _Jeu{
 //joueurs et jeu variables globales
 Joueur* joueurs[MAX_JOUEURS];
 Jeu* jeu;
+pthread_t threadJoueur[MAX_JOUEURS];
 
 
 char* heure();

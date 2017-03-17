@@ -482,9 +482,9 @@ char * genMessage (int port, char* host, char* nomClient){
 
 
 void* Ecoute(void* arg) {
-	int socket_descriptor, /* descripteur de socket */
-	new_socket_descriptor, /* [nouveau] descripteur de socket */
-	longueur_adresse_courante; /* longueur d'adresse courante d'un client */
+	int sock = *(int*) arg; /* descripteur de socket */
+	//int new_socket_descriptor, /* [nouveau] descripteur de socket */
+	 int longueur_adresse_courante; /* longueur d'adresse courante d'un client */
 	
 	sockaddr_in 
 		adresse_locale, /* structure d'adresse locale*/
@@ -498,7 +498,7 @@ void* Ecoute(void* arg) {
 		//on assigne le nom du joueur sur le message
 		char buffer[256];
 		int longueur;
-		if ((longueur = read(new_socket_descriptor, buffer, sizeof(buffer))) <= 0) {
+		if ((longueur = read(sock, buffer, sizeof(buffer))) <= 0) {
 			return 1;
 		}
 		/* évite les soucis de buffer */
@@ -530,7 +530,7 @@ int main(int argc, char **argv) {
 	}
 	
 	pthread_t threadEcoute;
-	int resultatEcoute = pthread_create(&threadEcoute, NULL, Ecoute, NULL);
+	int resultatEcoute = pthread_create(&threadEcoute, NULL, Ecoute, (void *)&socket_descriptor);
 
 
 	prog = argv[0];

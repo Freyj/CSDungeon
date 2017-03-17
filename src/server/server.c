@@ -184,10 +184,10 @@ void retraitJoueur(Joueur* joueur){
 void* tourDeJeu(void* arg) {
 	while(jeu->nbTour < 20) {
 		//on verrouille le jeu pour pas qu'un client le modifie entre temps
-		pthread_mutex_lock(&jeu->mutex_Jeu);
+		//pthread_mutex_lock(&jeu->mutex_Jeu);
 			if (joueurs[joueurTour]) {
 				//le joueur existe, on verrouille pour pouvoir faire quelque chose
-				pthread_mutex_lock(&joueurs[joueurTour]->mutex_Joueur);
+				//pthread_mutex_lock(&joueurs[joueurTour]->mutex_Joueur);
 				runLog("Joueur recu", 15);
 				decode(joueurs[joueurTour]->bufferAction);
 				char* message;
@@ -207,6 +207,7 @@ void* tourDeJeu(void* arg) {
 					nomCible = calloc(nomCibleLongueur+1, 1);
 					strncpy(nomCible, &joueurs[joueurTour]->bufferAction[9 + nomSourceLongueur], nomCibleLongueur);
 					message = genMessage(jeu->port, jeu->nomServeur, joueurs[joueurTour]->nomJoueur, nomCible, 1, 0);
+
 				}
 				else if (joueurs[joueurTour]->bufferAction[0] == '2') {
 					int nomSourceLongueur;
@@ -223,7 +224,7 @@ void* tourDeJeu(void* arg) {
 					message = genMessage(jeu->port, jeu->nomServeur, joueurs[joueurTour]->nomJoueur, nomCible, 2, 1);
 				}
 				envoiTous(message);
-				pthread_mutex_unlock(&joueurs[joueurTour]->mutex_Joueur);
+				//pthread_mutex_unlock(&joueurs[joueurTour]->mutex_Joueur);
 			}
 			else {
 				//si on a pas de joueur, on incrémente l'id (jusqu'à 16, après on le remet à )
@@ -235,7 +236,7 @@ void* tourDeJeu(void* arg) {
 					++jeu->nbTour;
 				}
 			}
-		pthread_mutex_unlock(&jeu->mutex_Jeu);
+		//pthread_mutex_unlock(&jeu->mutex_Jeu);
 	}
 	return NULL;
 }
@@ -274,7 +275,7 @@ void initServer(int port) {
 	runLog("debut d'initialisation", 0);
 	//theoriquement, le mutex n'est pas necessaire ici, mais au cas où
 	//init du mutex 
-	pthread_mutex_lock(&jeu->mutex_Jeu);
+	//pthread_mutex_lock(&jeu->mutex_Jeu);
 	//initialisation des adversaires
 	Ennemis* groupeEnnemis = malloc(sizeof(Ennemis));
 	groupeEnnemis = genEnnemis(groupeEnnemis);
@@ -287,7 +288,7 @@ void initServer(int port) {
 	jeu->nomServeur = malloc(sizeof(char) * TAILLE_MAX_NOM);
 	gethostname(jeu->nomServeur,TAILLE_MAX_NOM);
 
-	pthread_mutex_unlock(&jeu->mutex_Jeu);
+	//pthread_mutex_unlock(&jeu->mutex_Jeu);
 	runLog("initialisation terminee", 0);
 }
 /*------------------------------------------------------*/
@@ -342,28 +343,29 @@ void gestionSignal(int nomSignal){
  */
 void* loopJoueur(void* arg){
 	Joueur* joueur = (Joueur*) arg;
-	char* buffer = NULL;
+	ajoutJoueur(joueur);
+	char* buffer = malloc(sizeof(char) * TAILLE_BUFFER);
 	int longueur;
 	while ((longueur = read(joueur->nouv_sock, buffer, TAILLE_BUFFER)) > 0){
-	/* évite les soucis de buffer */
-	buffer[longueur] = '\0';
-	//on modifie le buffer donc on demande le mutex
-	pthread_mutex_lock(&joueur->mutex_Joueur);
-	joueur->bufferAction = buffer;
-	pthread_mutex_unlock(&joueur->mutex_Joueur);
-}
-  	/* Client quit/disconnected */
+		/* évite les soucis de buffer */
+		buffer[longueur] = '\0';
+		printf("Connexion reçue.\n");
+		runLog(buffer, 50);
+		//on modifie le buffer donc on demande le mutex
+		//pthread_mutex_lock(&joueur->mutex_Joueur);
+		joueur->bufferAction = buffer;
+		tourDeJeu(NULL);
+		//pthread_mutex_unlock(&joueur->mutex_Joueur);
+	}
+	 /* Client quit/disconnected */
   	/* Notify the clients */
   	runLog("Le joueur a quitte : ", 2);
   	runLog(joueur->nomJoueur, 2);
-  	char* message = malloc(sizeof(char) * 35);
-  	message = strcat("Le joueur a quitte : ", joueur->nomJoueur);
-  	envoiTous(message);
   	close(joueur->nouv_sock);
   	retraitJoueur(joueur);
+  	free(buffer);
   	
-  	free(joueur);
-  	pthread_detach(pthread_self());
+  	//pthread_detach(pthread_self());
 	return NULL;
 }
 /*------------------------------------------------------*/
@@ -388,6 +390,7 @@ void ajoutJoueur(Joueur* joueur) {
  */
 Joueur* initJoueur(sockaddr_in adresse_locale, int nouv_sock) {
 	Joueur* joueur = (Joueur *)calloc((sizeof(Joueur)), 1);
+	joueur->nomJoueur = "N00b";
 	joueur->adresse_locale = adresse_locale;
 	joueur->nouv_sock = nouv_sock;
 	joueur->joueurId = joueurIdCompteur++;
@@ -404,7 +407,7 @@ Joueur* initJoueur(sockaddr_in adresse_locale, int nouv_sock) {
 	inf.nbTues = 0;
 	joueur->info = inf;
 	//init du mutex
-	pthread_mutex_init(&joueur->mutex_Joueur, NULL);
+	//pthread_mutex_init(&joueur->mutex_Joueur, NULL);
 	runLog("Joueur cree", 50);
 	return joueur;
 }
@@ -751,6 +754,7 @@ char * genMessage(int port, char* host, char* nomSource, char* nomDest, int type
 	return message;
 }
 
+
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /* Fonction Principale */
@@ -759,8 +763,8 @@ int main(int argc, char** argv) {
 		//pour les calculs randoms de stats
 		srand(time(NULL));
 
-		pthread_t threadJeu;
-		pthread_t threadJoueur[16];
+		//pthread_t threadJeu;
+		pthread_t threadEcoute;
 		//TODO:faudrait check les arguments d'entree
 		//gestion de signaux pour la terminaison du programme
 		signal(SIGTERM, gestionSignal);
@@ -768,15 +772,15 @@ int main(int argc, char** argv) {
 		//on commence par initialiser le "jeu"
 		jeu = malloc(sizeof(Jeu));
 		//initialisation du mutex
-		pthread_mutex_init(&jeu->mutex_Jeu, NULL);
+		//pthread_mutex_init(&jeu->mutex_Jeu, NULL);
 		initServer(atoi(argv[1]));
-		int resultatJeu = pthread_create(&threadJeu, NULL, tourDeJeu, (void*) jeu);
+		//int resultatJeu = pthread_create(&threadJeu, NULL, tourDeJeu, NULL);
 		//si le thread de jeu echoue
-		if (resultatJeu != 0) {
-			runLog("Echec du thread de jeu", 0);
-			runLogInt(resultatJeu, 0);
-			return 1;			
-		}
+		//if (resultatJeu != 0) {
+		//	runLog("Echec du thread de jeu", 0);
+		//	runLogInt(resultatJeu, 0);
+		//	return 1;			
+		//}
 		int 
 		socket_descriptor, /* descripteur de socket */
 		new_socket_descriptor, /* [nouveau] descripteur de socket */
@@ -844,20 +848,7 @@ int main(int argc, char** argv) {
 			/* Creation d'un joueur */
 			Joueur* joueur = initJoueur(adresse_locale, new_socket_descriptor);
 			//on assigne le nom du joueur sur le message
-			char buffer[256];
-			int longueur;
-			if ((longueur = read(new_socket_descriptor, buffer, sizeof(buffer))) <= 0) {
-				return 1;
-			}
-			/* évite les soucis de buffer */
-			buffer[longueur] = '\0';
-			printf("Connexion reçue.\n");
-			runLog(buffer, 50);
-			joueur->nomJoueur = buffer;
-			ajoutJoueur(joueur);
-			runLog(joueur->nomJoueur, 0);
-			runLogInt(joueur->joueurId, 0);
-			runLog("Joueur connecte", 0);
+
 			pthread_create(&threadJoueur[joueur->joueurId], NULL, loopJoueur, (void *)joueur);
 		}
 		free(jeu);
