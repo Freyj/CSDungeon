@@ -363,7 +363,6 @@ void* loopJoueur(void* arg){
   	retraitJoueur(joueur);
   	
   	free(joueur);
-  	free(buffer);
   	pthread_detach(pthread_self());
 	return NULL;
 }
