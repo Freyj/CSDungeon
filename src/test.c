@@ -468,3 +468,10 @@ int main(){
 	printf("FIN\n");
 }
 
+	mesg = genMessage(int port, char* host, char* nomClient)
+		sendMessage(numeroPort, host, mesg);
+			if (strcmp("quit",mesg) == 0) {
+				endConnection = 0;
+			} else {
+				endConnection = 1;
+			}

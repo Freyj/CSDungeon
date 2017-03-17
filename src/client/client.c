@@ -481,6 +481,18 @@ char * genMessage (int port, char* host, char* nomClient){
 }
 
 
+void* Ecoute(void* arg) {
+	char buffer[256];
+	int longueur;
+	if ((longueur = read(new_socket_descriptor, buffer, sizeof(buffer))) <= 0) {
+		return 1;
+	}
+
+	buffer[longueur] = '\0';
+	printf("Connexion reçue.\n");
+	printf("%s\n", buffer);
+}
+
 
 int main(int argc, char **argv) {
 	int socket_descriptor; 		/* descripteur de socket */
@@ -501,6 +513,10 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 	
+	pthread_t threadEcoute;
+	int resultatEcoute = pthread_create(&threadEcoute, NULL, Ecoute, (void*) jeu);
+
+
 	prog = argv[0];
 	host = argv[1];
 	numeroPort = atoi(argv[2]);
