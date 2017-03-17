@@ -156,7 +156,7 @@ void attaque(int degats) {
 /*------------------------------------------------------*/
 /**
  * @brief fonction qui soigne
- * TODO: do
+ * TODO: do (de 2)
  */
 void soigner() {
 }
@@ -181,11 +181,25 @@ void retraitJoueur(Joueur* joueur){
  * Fonction qui gere le tour
  */ 
 void* tourDeJeu(void* arg) {
-	//id du joueur dont c'est le tour
-	int joueurTour = 0;
 	while(jeu->nbTour < 20) {
+		//on verrouille le jeu pour pas qu'un client le modifie entre temps
 		pthread_mutex_lock(&jeu->mutex_Jeu);
-
+			if (joueurs[joueurTour]) {
+				//le joueur existe, on verrouille pour pouvoir faire quelque chose
+				pthread_mutex_lock(&joueurs[joueurTour]->mutex_Joueur);
+				
+				pthread_mutex_unlock(&joueurs[joueurTour]->mutex_Joueur);
+			}
+			else {
+				//si on a pas de joueur, on incrémente l'id (jusqu'à 16, après on le remet à )
+				if (joueurTour <16) {
+					joueurTour++;
+				}
+				else {
+					joueurTour = 0;
+					++jeu->nbTour;
+				}
+			}
 		pthread_mutex_unlock(&jeu->mutex_Jeu);
 	}
 	return NULL;
@@ -274,7 +288,7 @@ void gestionSignal(int nomSignal){
   runLog("Signal reçu:", 50);
   runLog(strsignal(nomSignal), 50);
   /* Warn the clients that the server is closing */
-  if (nomSignal == SIGINT) {
+  if (nomSignal == SIGINT || nomSignal == SIGTERM) {
 	for (i = 0; i < MAX_JOUEURS; i++) {
 		if (joueurs[i]) {
 			envoiTous("Deconnexion Serveur.");
@@ -294,14 +308,16 @@ void gestionSignal(int nomSignal){
 void* loopJoueur(void* arg){
 	Joueur* joueur = (Joueur*) arg;
 	char* buffer = NULL;
-	int length;
-	while ((length = read(joueur->nouv_sock, buffer, TAILLE_BUFFER)) > 0){
-	/* Add an end to the buffer */
-	buffer[length] = '\0';
-	}
-
+	int longueur;
+	while ((longueur = read(joueur->nouv_sock, buffer, TAILLE_BUFFER)) > 0){
+	/* évite les soucis de buffer */
+	buffer[longueur] = '\0';
+	//on modifie le buffer donc on demande le mutex
+	pthread_mutex_lock(&joueur->mutex_Joueur);
+	joueur->bufferAction = buffer;
+	pthread_mutex_unlock(&joueur->mutex_Joueur);
+}
   	/* Client quit/disconnected */
-
   	/* Notify the clients */
   	runLog("Le joueur a quitte : ", 2);
   	runLog(joueur->nomJoueur, 2);
@@ -341,19 +357,36 @@ Joueur* initJoueur(sockaddr_in adresse_locale, int nouv_sock) {
 	joueur->adresse_locale = adresse_locale;
 	joueur->nouv_sock = nouv_sock;
 	joueur->joueurId = joueurIdCompteur++;
-	joueur->action = NULL;
+	joueur->bufferAction = malloc(sizeof(char) * TAILLE_BUFFER);
 	InfoJoueur inf;
 	inf.pv = 100;
 	inf.pvMax = 100;
 	inf.exp = 0;
-	/* La force est comprise entre 1 et 20 */
-	inf.force = (rand() % 20) + 1;
-	runLog("Force du joueur :", 50);
-	runLogInt(inf.force, 50);
+	/* La force aléatoire */
+	//inf.degats = (rand() % 20) + 1;
+	inf.degats = 5;
+	runLog("degats du joueur : 5", 50);
+	//runLogInt(inf.degats, 50);
 	inf.nbTues = 0;
 	joueur->info = inf;
+	//init du mutex
+	pthread_mutex_init(&joueur->mutex_Joueur, NULL);
 	runLog("Joueur cree", 50);
 	return joueur;
+}
+
+/** 
+ * Decode les messages reçus
+ */
+void decode(char* mesg){
+
+}
+/** 
+ * Encode les messages pour l'envoi
+ */
+char* encode(){
+	char* tempRes = "ENCODAGE";
+	return tempRes;
 }
 
 /*------------------------------------------------------*/
@@ -454,12 +487,15 @@ int main(int argc, char** argv) {
 			if ((longueur = read(new_socket_descriptor, buffer, sizeof(buffer))) <= 0) {
 				return 1;
 			}
+			/* évite les soucis de buffer */
+			buffer[longueur] = '\0';
+			printf("Connexion reçue.\n");
 			runLog(buffer, 50);
 			joueur->nomJoueur = buffer;
+			ajoutJoueur(joueur);
 			runLog(joueur->nomJoueur, 0);
 			runLogInt(joueur->joueurId, 0);
 			runLog("Joueur connecte", 0);
-			ajoutJoueur(joueur);
 			pthread_create(&threadJoueur[joueur->joueurId], NULL, loopJoueur, (void *)joueur);
 		}
 		free(jeu);

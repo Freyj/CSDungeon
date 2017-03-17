@@ -37,6 +37,8 @@ static int nbJoueursCourants = 0;
 static int joueurIdCompteur = 0;
 //int du socket
 static int descripteurSocket; /* socket descriptor */
+//int identifiant le joueur dont c'est le tour
+static int joueurTour = 0;
 
 //structures pour les sockets
 typedef struct sockaddr sockaddr;
@@ -50,7 +52,7 @@ typedef struct _InfoJoueur {
 	int pv;
 	int pvMax;
 	int exp;
-	int force;
+	int degats;
 	int nbTues;
 }InfoJoueur;
 /* Structure pour stocker les infos d'un client*/
@@ -64,7 +66,9 @@ typedef struct _Joueur {
 	struct sockaddr_in adresse_client;
 	struct hostent* ptr_hote;
 	char* nomJoueur;
-	char* action;
+	char* bufferAction;
+	//mutex pour éviter la modif d'un joueur
+	pthread_mutex_t mutex_Joueur;
 }Joueur;
 /* Structure des groupes d'ennemis */
 typedef struct _Ennemis{
@@ -104,3 +108,6 @@ void gestionSignal(int nomSignal);
 void* loopJoueur(void* arg);
 void ajoutJoueur(Joueur* joueur);
 Joueur* initJoueur(sockaddr_in adresse_locale, int nouv_sock);
+//TODO
+void decode(char* mesg);
+char* encode();
