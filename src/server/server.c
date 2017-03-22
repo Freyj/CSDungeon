@@ -471,66 +471,42 @@ int digit_to_int(char d){
 	return (int) strtol(str, NULL, 10);
 }
 
+int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos){
+	int dataToReturn;
+	dataToReturn = 0;
+	if(nbData == 2){
+		dataToReturn = dataToReturn + 10 * digit_to_int(mesg[data1Pos]);
+		dataToReturn = dataToReturn + digit_to_int(mesg[data2Pos]);
+	}else{
+		dataToReturn = dataToReturn + 100 * digit_to_int(mesg[data1Pos]);
+		dataToReturn = dataToReturn + 10 * digit_to_int(mesg[data2Pos]);
+		dataToReturn = dataToReturn + digit_to_int(mesg[data3Pos]);
+	}
+	return dataToReturn;
+}
+
 int getSourceLongueur(char* mesg){
-	//printf("int getSourceLongueur(char* mesg) \n");
-	int nomSourceLongueur;
-	nomSourceLongueur = 0;
-	nomSourceLongueur = nomSourceLongueur + 10 * digit_to_int(mesg[1]);
-	nomSourceLongueur = nomSourceLongueur + digit_to_int(mesg[2]);
-	//printf("nomSourceLongueur : %i\n", nomSourceLongueur);
-	return nomSourceLongueur;
+	return getDonnees(mesg, 2, 1, 2, 0);
 }
 
 int getCibleLongueur(char* mesg){
-	//printf("int getCibleLongueur(char* mesg) \n");
-	int nomCibleLongueur;
-	nomCibleLongueur = 0;
-	nomCibleLongueur = nomCibleLongueur + 10 * digit_to_int(mesg[3]);
-	nomCibleLongueur = nomCibleLongueur + digit_to_int(mesg[4]);
-	//printf("nomCibleLongueur : %i\n", nomCibleLongueur);
-	return nomCibleLongueur;
+	return getDonnees(mesg, 2, 3, 4, 0);
 }
 
 int getDonneesLongueur(char* mesg){
-	//printf("int getDonneesLongueur(char* mesg) \n");
-	int donneesLongueur;
-	donneesLongueur = 0;
-	donneesLongueur = donneesLongueur + 100 * digit_to_int(mesg[6]);
-	donneesLongueur = donneesLongueur + 10 * digit_to_int(mesg[7]);
-	donneesLongueur = donneesLongueur + digit_to_int(mesg[8]);
-	//printf("donneesLongueur : %i\n", donneesLongueur);
-	return donneesLongueur;
+	return getDonnees(mesg, 3, 6, 7, 8);
 }
 
 int getPointsDeVie(char* mesg, int offset){
-	//printf("int getPointsDeVie(char* mesg, int offset) \n");
-	int pointsDeVie;
-	pointsDeVie = 0;
-	pointsDeVie = pointsDeVie + 100 * digit_to_int(mesg[offset]);
-	pointsDeVie = pointsDeVie + 10 * digit_to_int(mesg[offset + 1]);
-	pointsDeVie = pointsDeVie + digit_to_int(mesg[offset + 2]);
-	//printf("pointsDeVie : %i\n", pointsDeVie);
-	return pointsDeVie;
+	return getDonnees(mesg, 3, offset, offset + 1, offset + 2);
 }
 
 int getNbClient(char* mesg){
-	//printf("int getNbClient(char* mesg) \n");
-	int nbClient;
-	nbClient = 0;
-	nbClient = nbClient + 10 * digit_to_int(mesg[1]);
-	nbClient = nbClient + digit_to_int(mesg[2]);
-	//printf("nbClient : %i\n", nbClient);
-	return nbClient;
+	return getDonnees(mesg, 2, 1, 2, 0);
 }
 
 int getLongueurNomClient(char* mesg, int offset){
-	//printf("int getLongueurNomClient(char* mesg) \n");
-	int longueurNomClient;
-	longueurNomClient = 0;
-	longueurNomClient = longueurNomClient + 10 * digit_to_int(mesg[offset]);
-	longueurNomClient = longueurNomClient + digit_to_int(mesg[offset + 1]);
-	//printf("longueurNomClient : %i\n", longueurNomClient);
-	return longueurNomClient;
+	return getDonnees(mesg, 2, offset, offset + 1, 0);
 }
 
 
