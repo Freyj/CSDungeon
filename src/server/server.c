@@ -546,7 +546,7 @@ void decode(char* mesg) {
 	int longueurEntete;
 	longueurEntete = 9;
 	printf("\t\t");
-	printf(mesg);
+	printf("%s", mesg);
 	printf("\n");
 	if(mesg[0] == '0'){									//0
 		//connexion
@@ -682,16 +682,16 @@ char * genMessage(int port, char* host, char* nomSource, char* nomDest, int type
 		int i;
 		int longueur = 0;
 		for (i = 0; i < nbJoueursCourants; ++i) {
-			longueur = longueur + strlen(joueurs[i]->nomJoueur);
+			longueur = longueur + strlen((char*) joueurs[i]->nomJoueur);
 		}
 		message = calloc(1 + 2 * nbJoueursCourants + longueur, 1); 
 		message = "5";
 		for (i = 0; i < nbJoueursCourants; ++i) {
 			if(strlen(joueurs[i]->nomJoueur) > 9){
-				message = strcat(message, strlen(joueurs[i]->nomJoueur));
+				message = strcat(message, (char*) strlen((char*) joueurs[i]->nomJoueur));
 			}else{
 				message = strcat(message, "0");
-				message = strcat(message, strlen(joueurs[i]->nomJoueur));
+				message = strcat(message, (char*) strlen((char*) joueurs[i]->nomJoueur));
 			}
 		}
 
@@ -701,22 +701,20 @@ char * genMessage(int port, char* host, char* nomSource, char* nomDest, int type
 	}
 	//attaquer
 	else if (type == 1) {
-		int longueurNomDest = strlen(nomDest);
-		int longueurNomSource = strlen(nomSource);
-		message = calloc(1 + 2 + 2 + 3 + 1 + longueurNomDest + longueurNomSource + 3, 1);
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3, 1);
 		message = "3";
 		//longueur des noms
-		if(longueurNomDest > 9){
-			message = strcat(message, longueurNomDest);
+		if(strlen(nomDest) > 9){
+			message = strcat(message, (char*) strlen(nomDest));
 		}else{
 			message = strcat(message, "0");
-			message = strcat(message, longueurNomDest);
+			message = strcat(message, (char*) strlen(nomDest));
 		}
-		if(longueurNomSource > 9){
-			message = strcat(message, longueurNomSource);
+		if(strlen(nomSource) > 9){
+			message = strcat(message, (char*) strlen(nomSource));
 		}else{
 			message = strcat(message, "0");
-			message = strcat(message, longueurNomSource);
+			message = strcat(message, (char*) strlen(nomSource));
 		}
 		//concat
 		message = strcat(message, "0");
@@ -727,22 +725,20 @@ char * genMessage(int port, char* host, char* nomSource, char* nomDest, int type
 	}
 	//soigner
 	else if (type == 2) {
-			int longueurNomDest = strlen(nomDest);
-		int longueurNomSource = strlen(nomSource);
-		message = calloc(1 + 2 + 2 + 3 + 1 + longueurNomDest + longueurNomSource + 3, 1);
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3, 1);
 		message = "3";
 		//longueur des noms
-		if(longueurNomDest > 9){
-			message = strcat(message, longueurNomDest);
+		if(strlen(nomDest) > 9){
+			message = strcat(message, (char*) strlen(nomDest));
 		}else{
 			message = strcat(message, "0");
-			message = strcat(message, longueurNomDest);
+			message = strcat(message, (char*) strlen(nomDest));
 		}
-		if(longueurNomSource > 9){
-			message = strcat(message, longueurNomSource);
+		if(strlen(nomSource) > 9){
+			message = strcat(message, (char*) strlen(nomSource));
 		}else{
 			message = strcat(message, "0");
-			message = strcat(message, longueurNomSource);
+			message = strcat(message, (char*) strlen(nomSource));
 		}
 		//concat
 		message = strcat(message, "1");
