@@ -193,7 +193,7 @@ void decode(char* mesg) {
 	int longueurEntete;
 	longueurEntete = 9;
 	printf("\t\t");
-	printf(mesg);
+	printf("%s", mesg);
 	printf("\n");
 	if(mesg[0] == '0'){									//0
 		//connexion
@@ -392,13 +392,13 @@ int sendRequeteNBClient(int port, char* host, char* mesg, char* clients[] ) {
 
 char * genMessage (int port, char* host, char* nomClient){
 	int nbClient;
-	char* mesgRequete = calloc(strlen(strcat(strcat (strcat("7", strlen(nomClient)), "000000"), nomClient))+2, 1);
-	char * clients[16];
+	char* mesgRequete = calloc(strlen( strcat(strcat (strcat("7", (char*) strlen(nomClient)), "000000"), nomClient)) + 2, 1);
+	char* clients[16];
 	if(strlen(nomClient)> 9){
-		mesgRequete = strcat(strcat (strcat("7", strlen(nomClient)), "000000"), nomClient);
+		mesgRequete = strcat( strcat (strcat("7", (char*) strlen(nomClient)), "000000"), nomClient);
 		nbClient = sendRequeteNBClient(port, host, mesgRequete, clients);
 	}else{
-		mesgRequete = strcat(strcat (strcat("70", strlen(nomClient)), "000000"), nomClient);
+		mesgRequete = strcat(strcat (strcat("70", (char*) strlen(nomClient)), "000000"), nomClient);
 		nbClient = sendRequeteNBClient(port, host, mesgRequete, clients);
 	}
 	printf("Choix cible\n");
@@ -406,39 +406,39 @@ char * genMessage (int port, char* host, char* nomClient){
 	int type;
 	type = -1;
 	while(type < 0 || type > 2){
-		scanf("%i", type);
+		scanf("%i", &type);
 		if(type < 0 || type > nbClient){
 			printf("Le choix doit être entre 0 et %i", 2);	
 		}
 	}
 	choix = -1;
 	while(choix < 0 || choix > nbClient){
-		scanf("%i", choix);
+		scanf("%i", &choix);
 		if(choix < 0 || choix > nbClient){
 			printf("Le choix doit être entre 0 et %i", nbClient);
 		}
 	}
-	char* mesg = calloc(strlen(strcat(strcat (strcat("7", strlen(nomClient)), "000000"), nomClient))+2 , 1);
+	char* mesg = calloc(strlen(strcat(strcat (strcat("7", (char*) strlen(nomClient)), "000000"), nomClient))+2 , 1);
 	if(type == 1){							//0
 		
 		if(strlen(nomClient)> 9){
-			mesg = strcat(strcat (strcat("1", strlen(nomClient)), "000000"), nomClient);
-			mesg = strcat("1", strlen(nomClient));
+			mesg = strcat(strcat (strcat("1", (char*) strlen(nomClient)), "000000"), nomClient);
+			mesg = strcat("1", (char*) strlen(nomClient));
 			if(strlen(clients[choix]) > 9){
-				mesg = strcat(mesg, strlen(clients[choix]));
+				mesg = strcat(mesg, (char*) strlen(clients[choix]));
 			}else{
 				mesg = strcat(mesg, "0");
-				mesg = strcat(mesg, strlen(clients[choix]));
+				mesg = strcat(mesg, (char*) strlen(clients[choix]));
 			}
 			mesg = strcat(mesg, "3");
 		}else{
-			mesg = strcat(strcat (strcat("10", strlen(nomClient)), "000000"), nomClient);
-			mesg = strcat("10", strlen(nomClient));
+			mesg = strcat(strcat (strcat("10", (char*) strlen(nomClient)), "000000"), nomClient);
+			mesg = strcat("10", (char*) strlen(nomClient));
 			if(strlen(clients[choix]) > 9){
-				mesg = strcat(mesg, strlen(clients[choix]));
+				mesg = strcat(mesg, (char*) strlen(clients[choix]));
 			}else{
 				mesg = strcat(mesg, "0");
-				mesg = strcat(mesg, strlen(clients[choix]));
+				mesg = strcat(mesg, (char*) strlen(clients[choix]));
 			}
 			mesg = strcat(mesg, "3");
 
@@ -448,21 +448,21 @@ char * genMessage (int port, char* host, char* nomClient){
 		mesg = strcat(mesg, "005");
 	}else if(type == 2){							//0
 		if(strlen(nomClient)> 9){
-			mesg = strcat("1", strlen(nomClient));
+			mesg = strcat("1", (char*) strlen(nomClient));
 			if(strlen(clients[choix]) > 9){
-				mesg = strcat(mesg, strlen(clients[choix]));
+				mesg = strcat(mesg, (char*) strlen(clients[choix]));
 			}else{
 				mesg = strcat(mesg, "0");
-				mesg = strcat(mesg, strlen(clients[choix]));
+				mesg = strcat(mesg, (char*) strlen(clients[choix]));
 			}
 			mesg = strcat(mesg, "3");
 		}else{
-			mesg = strcat("10", strlen(nomClient));
+			mesg = strcat("10", (char*) strlen(nomClient));
 			if(strlen(clients[choix]) > 9){
-				mesg = strcat(mesg, strlen(clients[choix]));
+				mesg = strcat(mesg, (char*) strlen(clients[choix]));
 			}else{
 				mesg = strcat(mesg, "0");
-				mesg = strcat(mesg, strlen(clients[choix]));
+				mesg = strcat(mesg, (char*) strlen(clients[choix]));
 			}
 			mesg = strcat(mesg, "3");
 		}
@@ -471,9 +471,9 @@ char * genMessage (int port, char* host, char* nomClient){
 		mesg = strcat(mesg, "005");
 	}else{
 		if(strlen(nomClient)> 9){
-			mesg = strcat(strcat (strcat("6", strlen(nomClient)), "000000"), nomClient);
+			mesg = strcat(strcat (strcat("6", (char*) strlen(nomClient)), "000000"), nomClient);
 		}else{
-			mesg = strcat(strcat (strcat("60", strlen(nomClient)), "000000"), nomClient);
+			mesg = strcat(strcat (strcat("60", (char*) strlen(nomClient)), "000000"), nomClient);
 		}
 	}
 	return mesg;
@@ -499,7 +499,7 @@ void* Ecoute(void* arg) {
 		char buffer[256];
 		int longueur;
 		if ((longueur = read(sock, buffer, sizeof(buffer))) <= 0) {
-			return 1;
+			return (void*) 1;
 		}
 		/* évite les soucis de buffer */
 		buffer[longueur] = '\0';
