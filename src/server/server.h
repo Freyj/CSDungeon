@@ -28,7 +28,7 @@ Serveur a lancer avant le client
 #include <signal.h>
 
 #define TAILLE_MAX_NOM 13
-#define MAX_JOUEURS 16
+#define MAX_JOUEURS 4
 #define TAILLE_BUFFER 256
 
 // pour compter les joueurs

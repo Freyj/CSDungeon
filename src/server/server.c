@@ -423,7 +423,7 @@ void sendMessage(int port, char* host, char* mesg) {
 
 	char buffer[256];
 	if ((ptr_host = gethostbyname(host)) == NULL) {
-		perror("erreur : impossible de trouver le serveur a partir de son adresse.");
+		perror("erreur : impossible de trouver le client a partir de son adresse.");
 		exit(1);
 	}
 	/* copie caractere par caractere des infos de ptr_host vers adresse_locale */
@@ -433,33 +433,32 @@ void sendMessage(int port, char* host, char* mesg) {
 	//adresse_locale.sin_port = htons(7332); // why port 7332 ?
 	adresse_locale.sin_port = htons(port);
 
-	printf("numero de port pour la connexion au serveur : %d \n", ntohs(adresse_locale.sin_port));
+	printf("numero de port pour la connexion au client : %d \n", ntohs(adresse_locale.sin_port));
 
 	/* creation de la socket */
 	if ((socket_descriptor = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		perror("erreur : impossible de creer la socket de connexion avec le serveur.");
+		perror("erreur : impossible de creer la socket de connexion avec le client.");
 		exit(1);
 	}
 
 	/* tentative de connexion au serveur dont les infos sont dans adresse_locale */
 	if ((connect(socket_descriptor, (sockaddr*)(&adresse_locale), sizeof(adresse_locale))) < 0) {
-		perror("erreur : impossible de se connecter au serveur.");
+		perror("erreur : impossible de se connecter au client.");
 		exit(1);
 	}
 	if ((write(socket_descriptor, mesg, strlen(mesg))) < 0) {
-		perror("erreur : impossible d'ecrire le message destine au serveur.");
+		perror("erreur : impossible d'ecrire le message destine au client.");
 		exit(1);
 	}
-	printf("message envoye au serveur. \n");
+	printf("message envoye au client. \n");
 	//write(1,buffer,longueur);
 	//return (longueur = read(socket_descriptor, buffer, sizeof(buffer)));
 	while((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
-		printf("reponse du serveur : \n");
+		printf("reponse du client : \n");
 		write(1,buffer,longueur);
     }
     printf("\n");
     close(socket_descriptor);
-
 }
 
 
@@ -699,6 +698,10 @@ char * genMessage(int port, char* host, char* nomSource, char* nomDest, int type
 			message = strcat(message, joueurs[i]->nomJoueur);
 		}
 	}
+	//deconnexion
+	else if (type == 6) {
+
+	}
 	//attaquer
 	else if (type == 1) {
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3, 1);
@@ -828,24 +831,45 @@ int main(int argc, char** argv) {
 		/* attente des connexions et traitement des donnees recues */
 		for(;;) {
 			longueur_adresse_courante = sizeof(adresse_client_courant);
+			/* on verifie que le nbJoueurs est pas max */
+			printf("%d", nbJoueursCourants);
+			int maxJoueur = 0;
+			if ((nbJoueursCourants+1) == MAX_JOUEURS){
+				runLog("Trop de joueurs connectes\n", 0);
+				/* adresse_client_courant sera renseignee par accept via les infos du connect */
+				if ((new_socket_descriptor = accept(socket_descriptor, (sockaddr*) (&adresse_client_courant), &longueur_adresse_courante)) < 0) {
+					perror("erreur : impossible d'accepter la connexion avec le client.");
+					exit(1);
+				}
+				maxJoueur = 1;
+				char* messageErr = "64565"; 
+				if (write(new_socket_descriptor, messageErr, strlen(messageErr)+1) == -1) {
+					runLog("erreur d'envoi vers client excedentaire", 0);
+				}
+				else {
+					runLog("rejet de joueur en trop bien envoye", 0);
+				}
+
+				close(new_socket_descriptor);
+			}
+			else {
+				maxJoueur = 0;
+			}
 			/* adresse_client_courant sera renseignee par accept via les infos du connect */
 			if ((new_socket_descriptor = accept(socket_descriptor, (sockaddr*) (&adresse_client_courant), &longueur_adresse_courante)) < 0) {
 				perror("erreur : impossible d'accepter la connexion avec le client.");
 				exit(1);
 			}
-			runLog("Tentative de connexion d'un joueur.", 0);
+			if (maxJoueur == 0) {
+				runLog("Tentative de connexion d'un joueur.", 0);
 
-			/* on verifie que le nbJoueurs est pas max */
-			if ( (nbJoueursCourants+1) == MAX_JOUEURS){
-				runLog("Trop de joueurs connectes\n", 0);
-				close(new_socket_descriptor);
+				/* Creation d'un joueur */
+				Joueur* joueur = initJoueur(adresse_locale, new_socket_descriptor);
+				//on assigne le nom du joueur sur le message
+
+				pthread_create(&threadJoueur[joueur->joueurId], NULL, loopJoueur, (void *)joueur);
+				printf("TESTING DE FOU\n");
 			}
-			
-			/* Creation d'un joueur */
-			Joueur* joueur = initJoueur(adresse_locale, new_socket_descriptor);
-			//on assigne le nom du joueur sur le message
-
-			pthread_create(&threadJoueur[joueur->joueurId], NULL, loopJoueur, (void *)joueur);
 		}
 		free(jeu);
 	}
