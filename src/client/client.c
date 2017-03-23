@@ -466,7 +466,8 @@ void* Ecoute(void* arg) {
 		adresse_locale, /* structure d'adresse locale*/
 		adresse_client_courant; /* adresse client courant */
 
-	hostent* ptr_hote;	char buffer[256];
+	hostent* ptr_hote;
+	//char buffer[256];
 	int longueur;
 	for(;;) {
 		longueur_adresse_courante = sizeof(adresse_client_courant);
@@ -516,6 +517,7 @@ int main(int argc, char **argv) {
 
 	printf("nom de l'executable : %s \n", prog);
 	printf("adresse du serveur  : %s \n", host);
+	printf("nom du client  : %s \n", nomClient);
 	sendMessage(numeroPort, host, nomClient);
 	int endConnection;
 	endConnection = 1;
