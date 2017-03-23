@@ -46,33 +46,14 @@ hostent;
 
 typedef struct servent 
 servent;
-
-/* Structure pour les armes */
-typedef struct arme {
-	char* nom;
-	int estMagique;
-	int degats;
-	int precision;
-}arme;
+//0 = c'est pas mon tour
+static int estMonTour = 0;
 
 /* Structure pour stocker les infos du client */
 typedef struct infoclient {
-	/* nom  */
 	char* nom;
-	/* caractéristiques */
 	int pv;
-	int pvMax;
-	int exp;
-	int niveau;
 	int force;
-	int magie;
-	int technique;
-	int vitesse;
-	int chance;
-	int defense;
-	int resistance;
-	arme arme;
-	/*socket associé */
 }infoclient;
 
 
@@ -320,12 +301,26 @@ int main(int argc, char **argv) {
 //	servent* ptr_service;  		/* info sur service */
 //	char buffer[256];
 	char* prog; 				/* nom du programme */
-	char* host; 				/* nom de la machine distante */
+	hostent* ptr_host; 				/* nom de la machine distante */
 	char* mesg = malloc(256); 	/* message envoyé */
 	char* nomClient;
 	int numeroPort;
 	int deconnexion;
-	int estMonTour;
+	char* host;
+	/* adresse_client_courant sera renseignee par accept via les infos du connect */
+	//on assigne le nom du joueur sur le message
+	char buffer[256];
+	int longueur;
+	//int new_socket_descriptor, /* [nouveau] descripteur de socket */
+	int longueur_adresse_courante; /* longueur d'adresse courante d'un client */
+	
+	sockaddr_in 
+		adresse_locale, /* structure d'adresse locale*/
+		adresse_client_courant; /* adresse client courant */
+
+
+
+
 	if (argc != 4) {
 		perror("usage : client <adresse-serveur> <numero-port> <client-name>");
 		exit(1);
@@ -337,23 +332,67 @@ int main(int argc, char **argv) {
 	nomClient = argv[3];
 
 	printf("nom de l'executable : %s \n", prog);
-	printf("adresse du serveur  : %s \n", host);
+	printf("adresse du serveur  : %s \n", ptr_host);
 	printf("nom du client  : %s \n", nomClient);
 
-	connexion();
-	transmissionDonnees();
+	if ((ptr_host = gethostbyname(host)) == NULL) {
+		perror("erreur : impossible de trouver le serveur a partir de son adresse.");
+		exit(1);
+	}
+	/* copie caractere par caractere des infos de ptr_host vers adresse_locale */
+	bcopy((char*)ptr_host->h_addr, (char*)&adresse_locale.sin_addr, ptr_host->h_length);
+	adresse_locale.sin_family = AF_INET; /* ou ptr_host->h_addrtype; */
+
+	//adresse_locale.sin_port = htons(7332); // why port 7332 ?
+	adresse_locale.sin_port = htons(numeroPort);
+
+	printf("numero de port pour la connexion au serveur : %d \n", ntohs(adresse_locale.sin_port));
+
+	/* creation de la socket */
+	if ((socket_descriptor = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("erreur : impossible de creer la socket de connexion avec le serveur.");
+		exit(1);
+	}
+
+	/* tentative de connexion au serveur dont les infos sont dans adresse_locale */
+	if ((connect(socket_descriptor, (sockaddr*)(&adresse_locale), sizeof(adresse_locale))) < 0) {
+		perror("erreur : impossible de se connecter au serveur.");
+		exit(1);
+	}
+	longueur_adresse_courante = sizeof(adresse_client_courant);
+
+
+	/*
+	if ((longueur = read(socket_descriptor, buffer, sizeof(buffer))) <= 0) {
+		return (void*) 1;
+	}*/
+
+
+	//transmissionDonnees();
 
 	deconnexion = 0;
 	estMonTour = 0;
 	while(deconnexion == 0){
 
 		while(estMonTour == 0){
-
+			//je lis
+			if((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
+				printf("reponse du serveur : \n");
+				buffer[longueur] = '\0';
+				printf("%s\n", buffer);
+				//write(1,buffer,longueur);
+				decode(buffer);
+				printf("Message reçu.\n");
+			}
+			else {
+				printf("erreur lecture \n");
+				break;
+			}
 		}
 
-		mesg = genMessage();
+	//	mesg = genMessage();
 
-		sendMessage(numeroPort, host, mesg);
+		//sendMessage(numeroPort, nomClient, mesg);
 		if(getTypeMessage(mesg) == 6){
 			printf("Deconnexion du serveur.\n");
 			deconnexion = 1;

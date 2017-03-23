@@ -329,7 +329,7 @@ int main(int argc, char** argv) {
 							joueurs[iterJoueur] = NULL;							
 						}
 						if (longueur > 0) {
-							printf("%s\n", buffer);
+							//printf("%s\n", buffer);
 							//si le joueur n'est pas mort
 							printf("RECEIVED A THING\n");
 							if (joueurs[iterJoueur]->pv > 0) {
