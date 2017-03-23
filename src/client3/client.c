@@ -1,12 +1,39 @@
+/**
+ * @Authors : Charlène Servantie, Charles-Eric Begaudeau
+ * @Date : 2017
+ * @Version : 0.1
+ * @brief : 
+*/
 
+/*-----------------------------------------------------------
+  Client a lancer apres le serveur avec la commande :
+  client <adresse-serveur> <message-a-transmettre>
+  ------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <linux/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
+#include <pthread.h>
+#include <unistd.h>
 
-//#3E6EB7
+/*------------------------------------------------------------------------------*/
+
+void* Ecoute(void* arg);
+char * genMessage (int port, char* host, char* nomClient);
+int sendRequeteNBClient(int port, char* host, char* mesg, char* clients[] );
+void decode(char* mesg);
+int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos);
+int getSourceLongueur(char* mesg);
+int getCibleLongueur(char* mesg);
+int getDonneesLongueur(char* mesg);
+int getPointsDeVie(char* mesg, int offset);
+int getNbClient(char* mesg);
+int getLongueurNomClient(char* mesg, int offset);
+int getTypeDeModification(char* mesg);
+
+/*------------------------------------------------------------------------------*/
 
 typedef struct sockaddr 
 sockaddr;
@@ -47,6 +74,7 @@ typedef struct infoclient {
 	arme arme;
 	/*socket associé */
 }infoclient;
+
 
 int digit_to_int(char d){
 	char str[2];
@@ -99,7 +127,9 @@ int getTypeDeModification(char* mesg){
 	return getDonnees(mesg, 1, 5, 0, 0);
 }
 
-
+int getTypeMessage(char* mesg){
+	return getDonnees(mesg, 1, 0, 0, 0);
+}
 
 void decode(char* mesg) {
 	int nomSourceLongueur;
@@ -110,6 +140,7 @@ void decode(char* mesg) {
 	char* nomSource;
 	char* nomCible;
 	int longueurEntete;
+	int estVictoire;
 	longueurEntete = 9;
 	printf("\t\t");
 	printf("%s", mesg);
@@ -230,6 +261,14 @@ void decode(char* mesg) {
 		printf("Type de message : DEMANDE LISTE DES CLIENTS \nLongueurNomSource : %i\nNomSource : %s\n",
 		 nomSourceLongueur, nomSource);
 		free(nomSource);
+	}else if(mesg[0] == '8'){
+		perror("erreur : type de message non definit pour le moment.");
+		exit(1);
+	}else if(mesg[0] == '9'){
+		//Fin du Jeu
+		estVictoire = getTypeDeModification(mesg);
+		printf("Type de message : FIN DE JEU \n estVictoire : %i",
+		 estVictoire);
 	}else{
 		perror("erreur : message errone.");
 		exit(1);
@@ -239,213 +278,109 @@ void decode(char* mesg) {
 
 
 
-int sendRequeteNBClient(int port, char* host, char* mesg, char* clients[] ) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int main(int argc, char **argv) {
 	int socket_descriptor; 		/* descripteur de socket */
-	int longueur; 				/* longueur d'un buffer utilisé */
+//	int longueur; 				/* longueur d'un buffer utilisé */
 
-	sockaddr_in adresse_locale; /* adresse de socket local */
+//	sockaddr_in adresse_locale; /* adresse de socket local */
 
-	hostent* ptr_host;  		/* info sur une machine hote */
-	servent* ptr_service;  		/* info sur service */
-
-	char buffer[256];
-	if ((ptr_host = gethostbyname(host)) == NULL) {
-		perror("erreur : impossible de trouver le serveur a partir de son adresse.");
-		exit(1);
-	}
-	/* copie caractere par caractere des infos de ptr_host vers adresse_locale */
-	bcopy((char*)ptr_host->h_addr, (char*)&adresse_locale.sin_addr, ptr_host->h_length);
-	adresse_locale.sin_family = AF_INET; /* ou ptr_host->h_addrtype; */
-
-	//adresse_locale.sin_port = htons(7332); // why port 7332 ?
-	adresse_locale.sin_port = htons(port);
-
-	printf("numero de port pour la connexion au serveur : %d \n", ntohs(adresse_locale.sin_port));
-
-	/* creation de la socket */
-	if ((socket_descriptor = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		perror("erreur : impossible de creer la socket de connexion avec le serveur.");
+//	hostent* ptr_host;  		/* info sur une machine hote */
+//	servent* ptr_service;  		/* info sur service */
+//	char buffer[256];
+	char* prog; 				/* nom du programme */
+	char* host; 				/* nom de la machine distante */
+	char* mesg = malloc(256); 	/* message envoyé */
+	char* nomClient;
+	int numeroPort;
+	int deconnexion;
+	int estMonTour;
+	if (argc != 4) {
+		perror("usage : client <adresse-serveur> <numero-port> <client-name>");
 		exit(1);
 	}
 
-	/* tentative de connexion au serveur dont les infos sont dans adresse_locale */
-	if ((connect(socket_descriptor, (sockaddr*)(&adresse_locale), sizeof(adresse_locale))) < 0) {
-		perror("erreur : impossible de se connecter au serveur.");
-		exit(1);
-	}
-	if ((write(socket_descriptor, mesg, strlen(mesg))) < 0) {
-		perror("erreur : impossible d'ecrire le message destine au serveur.");
-		exit(1);
-	}
-	printf("message envoye au serveur. \n");
-	//write(1,buffer,longueur);
-	//return (longueur = read(socket_descriptor, buffer, sizeof(buffer)));
-	int nbClient;
-	nbClient = 0;
-	while((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
-		printf("reponse du serveur : \n");
-		nbClient = getNbClient(buffer);
-		nbClient = getNbClient(mesg);
-		int longueurNomClient[nbClient];
-		int offset = 0;
-		int i;
-		for(i = 0; i < nbClient; ++i){
-			offset = 2 * i + 3;
-			longueurNomClient[i] = getLongueurNomClient(mesg, offset);
-		}
-		offset = offset + 2;
-		for(i = 0; i < nbClient; ++i){
-			clients[i] = calloc(longueurNomClient[i]+1, 1);
-			strncpy(clients[i], &mesg[offset], longueurNomClient[i]);
-			//printf("nomClient a la position : %i -- %s\n", i, clients[i]);
-			printf("%i/ %s\n", i+1, clients[i]);
-			offset = longueurNomClient[i] + offset;
-		}
-		write(1,buffer,longueur);
-    }
-    printf("\n");
-    close(socket_descriptor);
-    return nbClient;
-}
+	prog = argv[0];
+	host = argv[1];
+	numeroPort = atoi(argv[2]);
+	nomClient = argv[3];
 
+	printf("nom de l'executable : %s \n", prog);
+	printf("adresse du serveur  : %s \n", host);
+	printf("nom du client  : %s \n", nomClient);
 
-char * genMessage (int port, char* host, char* nomClient) {
-	int nbClient;
-	char* mesgRequete = calloc(strlen( strcat(strcat (strcat("7", (char*) strlen(nomClient)), "000000"), nomClient)) + 2, 1);
-	char* clients[16];
-	if(strlen(nomClient)> 9){
-		mesgRequete = strcat( strcat (strcat("7", (char*) strlen(nomClient)), "000000"), nomClient);
-		nbClient = sendRequeteNBClient(port, host, mesgRequete, clients);
-	}else{
-		mesgRequete = strcat(strcat (strcat("70", (char*) strlen(nomClient)), "000000"), nomClient);
-		nbClient = sendRequeteNBClient(port, host, mesgRequete, clients);
-	}
-	printf("Choix cible\n");
-	int choix;
-	int type;
-	type = -1;
-	while(type < 0 || type > 2){
-		scanf("%i", &type);
-		if(type < 0 || type > nbClient){
-			printf("Le choix doit être entre 0 et %i", 2);	
+	connexion();
+	transmissionDonnees();
+
+	deconnexion = 0;
+	estMonTour = 0;
+	while(deconnexion == 0){
+
+		while(estMonTour == 0){
+
+		}
+
+		mesg = genMessage();
+
+		sendMessage(numeroPort, host, mesg);
+		if(getTypeMessage(mesg) == 6){
+			printf("Deconnexion du serveur.\n");
+			deconnexion = 1;
 		}
 	}
-	choix = -1;
-	while(choix < 0 || choix > nbClient){
-		scanf("%i", &choix);
-		if(choix < 0 || choix > nbClient){
-			printf("Le choix doit être entre 0 et %i", nbClient);
-		}
-	}
-	char* mesg = calloc(strlen(strcat(strcat (strcat("7", (char*) strlen(nomClient)), "000000"), nomClient))+2 , 1);
-	if(type == 1){							//0
-		
-		if(strlen(nomClient)> 9){
-			mesg = strcat(strcat (strcat("1", (char*) strlen(nomClient)), "000000"), nomClient);
-			mesg = strcat("1", (char*) strlen(nomClient));
-			if(strlen(clients[choix]) > 9){
-				mesg = strcat(mesg, (char*) strlen(clients[choix]));
-			}else{
-				mesg = strcat(mesg, "0");
-				mesg = strcat(mesg, (char*) strlen(clients[choix]));
-			}
-			mesg = strcat(mesg, "3");
-		}else{
-			mesg = strcat(strcat (strcat("10", (char*) strlen(nomClient)), "000000"), nomClient);
-			mesg = strcat("10", (char*) strlen(nomClient));
-			if(strlen(clients[choix]) > 9){
-				mesg = strcat(mesg, (char*) strlen(clients[choix]));
-			}else{
-				mesg = strcat(mesg, "0");
-				mesg = strcat(mesg, (char*) strlen(clients[choix]));
-			}
-			mesg = strcat(mesg, "3");
-
-		}
-		mesg = strcat(mesg, nomClient);
-		mesg = strcat(mesg, clients[choix]);
-		mesg = strcat(mesg, "005");
-	}else if(type == 2){							//0
-		if(strlen(nomClient)> 9){
-			mesg = strcat("1", (char*) strlen(nomClient));
-			if(strlen(clients[choix]) > 9){
-				mesg = strcat(mesg, (char*) strlen(clients[choix]));
-			}else{
-				mesg = strcat(mesg, "0");
-				mesg = strcat(mesg, (char*) strlen(clients[choix]));
-			}
-			mesg = strcat(mesg, "3");
-		}else{
-			mesg = strcat("10", (char*) strlen(nomClient));
-			if(strlen(clients[choix]) > 9){
-				mesg = strcat(mesg, (char*) strlen(clients[choix]));
-			}else{
-				mesg = strcat(mesg, "0");
-				mesg = strcat(mesg, (char*) strlen(clients[choix]));
-			}
-			mesg = strcat(mesg, "3");
-		}
-		mesg = strcat(mesg, nomClient);
-		mesg = strcat(mesg, clients[choix]);
-		mesg = strcat(mesg, "005");
-	}else{
-		if(strlen(nomClient)> 9){
-			mesg = strcat(strcat (strcat("6", (char*) strlen(nomClient)), "000000"), nomClient);
-		}else{
-			mesg = strcat(strcat (strcat("60", (char*) strlen(nomClient)), "000000"), nomClient);
-		}
-	}
-	return mesg;
-}
-
-
-int main(){
-	char* m1 = calloc(100, 1);
-	m1 = "006000003ELDRAD";
-	decode(m1);
-	//attaque
-	//nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
-	//nomCibleLongueur = getCibleLongueur(mesg);	//3 | 4
-	//typeDeModification inutile					//5
-	//donneesLongueur = getCibleLongueur(mesg);		//6 | 7 | 8
-
-	char* m2 = calloc(100, 1);
-	//				  12 15 18
-	//				10 13 16 19
-	//	  0123456789 11 14 17
-	m2 = "106030003ELDRADBOB017";
-	decode(m2);
-
-	char* m3 = calloc(100, 1);
-	m3 = "206030003EldradBOB042";
-	decode(m3);
-	char* m4 = calloc(100, 1);
-	m4 = "306030003ELDRADBOB101";
-	decode(m4);
-	char* m5 = calloc(100, 1);
-	m5 = "406030000ELDRADBOB";
-	decode(m5);
-	char* m6 = calloc(100, 1);
-	m6 = "506060302100405ELDRADBOBXILUMINACALIJULEFREYA";
-	decode(m6);
-	char* m7 = calloc(100, 1);
-	m7 = "606000000ELDRAD";
-	decode(m7);
-	char* m8 = calloc(100, 1);
-	m8 = "706000000ELDRAD";
-	decode(m8);
-
-
 
 /*
-	free(m1);
-	free(m2);
-	free(m3);
-	free(m4);
-	free(m5);
-	free(m6);
-	free(m7);
-	free(m8);
+	int endConnexion;
+
+	endConnexion = 1;
+	while(endConnexion > 0) {
+		printf("Message : ");
+		scanf("%s", mesg);
+		printf("%s \n", mesg);
+		mesg = genMessage(numeroPort, host, nomClient);
+		sendMessage(numeroPort, host, mesg);
+		if (mesg[0] == '6') {
+			endConnexion = 0;
+		} else {
+			endConnexion = 1;
+		}
+	}
 */
-	printf("FIN\n");
+
+	free(mesg);
+	printf("\nfin de la reception.\n");
+	close(socket_descriptor);
+	printf("connexion avec le serveur fermee, fin du programme.\n");
+	exit(0);  
 }

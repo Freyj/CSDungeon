@@ -18,6 +18,22 @@
 #include <pthread.h>
 #include <unistd.h>
 
+/*------------------------------------------------------------------------------*/
+
+void* Ecoute(void* arg);
+char * genMessage (int port, char* host, char* nomClient);
+int sendRequeteNBClient(int port, char* host, char* mesg, char* clients[] );
+void decode(char* mesg);
+int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos);
+int getSourceLongueur(char* mesg);
+int getCibleLongueur(char* mesg);
+int getDonneesLongueur(char* mesg);
+int getPointsDeVie(char* mesg, int offset);
+int getNbClient(char* mesg);
+int getLongueurNomClient(char* mesg, int offset);
+
+/*------------------------------------------------------------------------------*/
+
 typedef struct sockaddr 
 sockaddr;
 
@@ -60,6 +76,7 @@ typedef struct infoclient {
 
 
 
+
 void sendMessage(int port, char* host, char* mesg) {
 	int socket_descriptor; 		/* descripteur de socket */
 	int longueur; 				/* longueur d'un buffer utilisé */
@@ -99,19 +116,23 @@ void sendMessage(int port, char* host, char* mesg) {
 		exit(1);
 	}
 	printf("message envoye au serveur. \n");
+	printf("reponse du serveur : \n");
+
 	//write(1,buffer,longueur);
 	//return (longueur = read(socket_descriptor, buffer, sizeof(buffer)));
+	/*
 	while((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
 		printf("reponse du serveur : \n");
-		write(1,buffer,longueur);
+		//write(1,buffer,longueur);
+		decode(buffer);
     }
+	//printf("reponse du serveur : \n");
+    printf("REPEAT\n");
+    decode(buffer);
+    printf("FIN SENDMESSAGE\n");*/
     printf("\n");
     close(socket_descriptor);
-
 }
-
-
-
 
 int digit_to_int(char d){
 	char str[2];
@@ -157,7 +178,6 @@ int getNbClient(char* mesg){
 int getLongueurNomClient(char* mesg, int offset){
 	return getDonnees(mesg, 2, offset, offset + 1, 0);
 }
-
 
 void decode(char* mesg) {
 	int nomSourceLongueur;
@@ -295,8 +315,6 @@ void decode(char* mesg) {
 	printf("\n");
 }
 
-
-
 int sendRequeteNBClient(int port, char* host, char* mesg, char* clients[] ) {
 	int socket_descriptor; 		/* descripteur de socket */
 	int longueur; 				/* longueur d'un buffer utilisé */
@@ -366,8 +384,7 @@ int sendRequeteNBClient(int port, char* host, char* mesg, char* clients[] ) {
     return nbClient;
 }
 
-
-char * genMessage (int port, char* host, char* nomClient){
+char * genMessage (int port, char* host, char* nomClient) {
 	int nbClient;
 	char* mesgRequete = calloc(strlen( strcat(strcat (strcat("7", (char*) strlen(nomClient)), "000000"), nomClient)) + 2, 1);
 	char* clients[16];
@@ -454,14 +471,12 @@ char * genMessage (int port, char* host, char* nomClient){
 		}
 	}
 	return mesg;
-
 }
 
-
 void* Ecoute(void* arg) {
-	int sock = *(int*) arg; /* descripteur de socket */
+	int socket_descriptor = *(int*) arg; /* descripteur de socket */
 	//int new_socket_descriptor, /* [nouveau] descripteur de socket */
-	 int longueur_adresse_courante; /* longueur d'adresse courante d'un client */
+	int longueur_adresse_courante; /* longueur d'adresse courante d'un client */
 	
 	sockaddr_in 
 		adresse_locale, /* structure d'adresse locale*/
@@ -476,17 +491,23 @@ void* Ecoute(void* arg) {
 		//on assigne le nom du joueur sur le message
 		char buffer[256];
 		int longueur;
-		if ((longueur = read(sock, buffer, sizeof(buffer))) <= 0) {
+
+		/*
+		if ((longueur = read(socket_descriptor, buffer, sizeof(buffer))) <= 0) {
 			return (void*) 1;
+		}*/
+		while((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
+			printf("reponse du serveur : \n");
+			buffer[longueur] = '\0';
+			//write(1,buffer,longueur);
+			decode(buffer);
+			printf("Message reçue.\n");
+			sleep(1);
 		}
 		/* évite les soucis de buffer */
 		buffer[longueur] = '\0';
-		printf("Message reçue.\n");
-		printf("%s\n", buffer);
-		//TODO: rajouter un décodage du buffer et un affichage pour le client
-		
+		//printf("%s\n", buffer);
 	}
-
 }
 
 
