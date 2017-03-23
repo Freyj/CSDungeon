@@ -13,11 +13,6 @@ Serveur a lancer avant le client
 
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/**
- * @brief Fonction qui donne l'heure pour les logs
- * @details renvoie l'heure en hh:mm:ss
- * @return un char* decrivant l'heure
- */
 char* heure() {
 	time_t temps = time(NULL);
 	struct tm structTps = *localtime(&temps);
@@ -27,11 +22,6 @@ char* heure() {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/**
- * @brief Fonction pour logger les erreurs dans un fichier
- * @param erreur le message en char*
- * @param threadNb le nb du thread pour debug 
- */
 void runLog(char* erreur, int threadNb) {
 	FILE* file = fopen("logServeur.log", "a");
 	if (file == NULL) {
@@ -58,12 +48,6 @@ void runLog(char* erreur, int threadNb) {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/**
- * @brief Fonction pour logger les erreurs dans un fichier
- * fonctionne pour les int
- * @param erreur le message en int
- * @param threadNb le nb du thread pour debug 
- */
 void runLogInt(int erreur, int threadNb) {
 	FILE* file = fopen("logServeur.log", "a");
 	if (file == NULL) {
@@ -93,10 +77,6 @@ void runLogInt(int erreur, int threadNb) {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/**
- * @brief Fonction generant un groupe d'ennemis
- * @details 3 ennemis a 20 pv, pas encore de reglages
- */
 Ennemis* genEnnemis(Ennemis* en) {
 	en->pvEn1 = 200;
 	en->pvEn2 = 200;
@@ -105,9 +85,6 @@ Ennemis* genEnnemis(Ennemis* en) {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/**
- * @brief fonction verifiant qu'un groupe n'est pas mort
- */
 int ennemisElimines(Ennemis* en) {
 	runLog("Check d'ennemis elimines", 50);
 	runLogInt(en->pvEn1, 50);
@@ -118,9 +95,6 @@ int ennemisElimines(Ennemis* en) {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/**
- * @brief fonction lançant une attaque sur un groupe
- */
 void attaque(int degats) {
 	if (ennemisElimines(jeu->ennemis) == 0) {
 		if (&jeu->ennemis->pvEn1 > 0 ) {
@@ -140,9 +114,7 @@ void attaque(int degats) {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/** @brief fonction qui enleve un joueur et decremente le total
- *
- */
+
 void retraitJoueur(Joueur* joueur){
 	int i;
 	for (i = 0; i < MAX_JOUEURS; i++) {
@@ -155,14 +127,8 @@ void retraitJoueur(Joueur* joueur){
   nbJoueursCourants--;
   pthread_mutex_unlock(&mutex);
 }
-
 /*------------------------------------------------------*/
 /*-------------------PAS TESTE         -----------------*/
-/**
- * @brief envoie un message a tous les joueurs
- * @details log les envois
- * @param message le char* du message
- */
 void envoiTous(char* message){
 	int i;
 	for (i = 0; i < MAX_JOUEURS; ++i) {
@@ -180,10 +146,6 @@ void envoiTous(char* message){
 }
 /*------------------------------------------------------*/
 /*----------------// ENVOITOUS MARCHE PAS //------------*/
-/**
- * @brief gere les signaux 
- * @param nomSignal : l'int du signal (SIGINT)
- */
 void gestionSignal(int nomSignal){
   int i;
   runLog("Signal reçu:", 50);
@@ -203,9 +165,6 @@ void gestionSignal(int nomSignal){
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/** 
- * @brief fonction qui ajoute un joueur et incremente le total
- */
 void ajoutJoueur(Joueur* joueur) {
 	int i;
 	for (i = 0; i < MAX_JOUEURS; i++) {
@@ -220,9 +179,6 @@ void ajoutJoueur(Joueur* joueur) {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/**
- * @brief  Initialisation du joueur
- */
 Joueur* initJoueur(sockaddr_in adresse_locale, int nouv_sock) {
 	Joueur* joueur = (Joueur *)calloc((sizeof(Joueur)), 1);
 	joueur->nomJoueur = "N00b";
@@ -442,9 +398,7 @@ void decode(char* mesg) {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/** 
- * @brief génère les messages à envoyer
- */
+
 char* genMessage(int port, char* host, char* nomSource, char* nomDest, int type, int tDm){
 	//requete liste client
 	char* message;
@@ -526,13 +480,6 @@ char* genMessage(int port, char* host, char* nomSource, char* nomDest, int type,
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/**
- * @brief vérifie que le socket actuel n'existe pas déjà
- * dans la liste de joueurs
- * @param le socket qu'on compare
- * @return un int, 0 si c'est le même
- *                 1 sinon
- */
 int isNotJoueur(int sock_desc) {
 	int i;
 	for (i = 0; i < nbJoueursCourants; ++i) {
@@ -546,11 +493,6 @@ int isNotJoueur(int sock_desc) {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/**
- * @brief renvoie le premier id non attribue
- * @param l'int a testé
- * @return l'int non attribue, sinon -1
- */
 int idLibre() {
 	int i;
 	for (i = 0; i < MAX_JOUEURS; ++i) {
@@ -562,11 +504,6 @@ int idLibre() {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/**
- * @brief renvoie le premier id attribue
- * @param l'int a testé
- * @return l'int attribue, sinon -1
- */
 int idOccupe() {
 	int i;
 	for (i = 0; i < MAX_JOUEURS; ++i) {
@@ -578,9 +515,6 @@ int idOccupe() {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/** 
- * @brief fonction du thread de chaque joueur
- */
 void* loopJoueur(void* arg) {
 	int longueur;
 	char buffer[TAILLE_BUFFER];
@@ -622,18 +556,11 @@ void* loopJoueur(void* arg) {
 }
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/** 
- * @brief fonction de resolution d'action d'un joueur
- * @param joueur agissant
- * @return message à renvoyer à tous
- */
 char* resolution(Joueur* joueur) {
 	return NULL;
 }
-
-/** 
- * @brief fonction du thread de jeu
- */
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 void* loopJeu(void* arg) {
 	//boucle infinie pour tourner
 	for (;;) {
@@ -655,12 +582,8 @@ void* loopJeu(void* arg) {
 	pthread_detach(pthread_self());
 	return NULL;
 }
-
-
-
-/**
- *	@brief initialisation du serveur
- */ 
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 void initServer(int port) {
 	//comme on modifie le jeu
 	runLog("debut d'initialisation", 0);
@@ -689,7 +612,6 @@ void initServer(int port) {
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-
 int main(int argc, char** argv) {
 	if ( argc == 2 ) {
 		//gestion de signaux pour la terminaison du programme
