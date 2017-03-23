@@ -15,7 +15,8 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
-
+#include <pthread.h>
+#include <unistd.h>
 
 typedef struct sockaddr 
 sockaddr;
@@ -481,6 +482,8 @@ void* Ecoute(void* arg) {
 		buffer[longueur] = '\0';
 		printf("Message reçue.\n");
 		printf("%s\n", buffer);
+		//TODO: rajouter un décodage du buffer et un affichage pour le client
+		
 	}
 
 }
