@@ -38,7 +38,7 @@ dans le client pardon je veux dire dans le thread client du serveur
 #define MAX_JOUEURS 4
 #define MAX_TOURS 50
 #define TAILLE_BUFFER 256
-#define READ_TIMEOUT 3000000000
+#define READ_TIMEOUT 3
 
 
 // pour compter les joueurs

@@ -168,7 +168,7 @@ int ennemisElimines(Ennemis* en) {
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 void initJoueur(int sock, char* nom, sockaddr_in adresse_client_courant) {
-		printf("%d\n", sock);
+		//printf("%d\n", sock);
 		//printf("%s\n", strerror(errno));
 		Joueur* joueur = malloc(sizeof(Joueur));
 		joueur->adresse_client =adresse_client_courant;
@@ -241,7 +241,7 @@ int main(int argc, char** argv) {
 
 		/* set a timeout for 1 min */
 		timeoutRead = malloc(sizeof(timeval));
-		long int tv_sec = 0;
+		long int tv_sec = READ_TIMEOUT;
 		timeoutRead->tv_sec = tv_sec;
 		timeoutRead->tv_usec = 0;
 
@@ -276,7 +276,7 @@ int main(int argc, char** argv) {
 
 		printf("Server initialise\n");
 
-		printf("%d \n",local_address.sin_port);
+		//printf("%d \n",local_address.sin_port);
 	  	//on attend la connexion de tous les joueurs
 	  	while(nbJoueursCourants < MAX_JOUEURS) {
 	  		printf("ajouts de joueurs\n");
@@ -291,6 +291,7 @@ int main(int argc, char** argv) {
 			//SEGFAULT OH GOD WHY
 			//printf("%s\n", "AHHHHHHHHHHHHHHHHHHH");
 			//printf("%d\n", new_socket_descriptor);
+			//printf("%s\n", strerror(errno));
 
 			//initialise le joueur ET incrémente le nbJoueursCourant. (ajoute dans le tableau)
 			//how to get a name ?
@@ -308,17 +309,17 @@ int main(int argc, char** argv) {
 					printf("iteration de joueur\n");
 					//on vérifie que le joueur existe
 					if (joueurs[iterJoueur]) {
-						printf("joueur %s\n", joueurs[iterJoueur]->nomJoueur);
+						printf("joueur %d\n", iterJoueur);
 						int longueur = 0;
-						char* buffer = "test";
+						char buffer[TAILLE_BUFFER];
 						//on écoute
 						//segfault
-						printf("%d\n", joueurs[iterJoueur]->sock_desc);
-						//int sockOpti = setsockopt(joueurs[iterJoueur]->sock_desc, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&timeoutRead,sizeof(struct timeval));
+						//printf("%d\n", joueurs[iterJoueur]->sock_desc);
+						setsockopt(joueurs[iterJoueur]->sock_desc, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&timeoutRead,sizeof(struct timeval));
 
 						longueur = read(joueurs[iterJoueur]->sock_desc, buffer, TAILLE_BUFFER);
-						runLogInt(errno,1);
-						printf("%s\n", strerror(errno));
+						//runLogInt(errno,1);
+						//printf("%s\n", strerror(errno));
 						if (longueur < 0) {
 							printf("ERROR DE READ\n");
 							joueurs[iterJoueur] = NULL;
@@ -333,7 +334,7 @@ int main(int argc, char** argv) {
 							printf("RECEIVED A THING\n");
 							if (joueurs[iterJoueur]->pv > 0) {
 								printf("JOUEUR ALIVE\n");
-								printf("%i\n", joueurs[iterJoueur]->pv);
+								printf("PV du joueur %i\n", joueurs[iterJoueur]->pv);
 								//si les ennemis sont morts, on envoie un message de fin
 								//TODO: plus tard, on enverra un truc pour redémarrer?
 								if (ennemisElimines(jeu->ennemis) == 1) {
