@@ -18,6 +18,8 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#define TAILLE_BUFFER 256
+
 /*------------------------------------------------------------------------------*/
 
 void* Ecoute(void* arg);
@@ -32,6 +34,9 @@ int getPointsDeVie(char* mesg, int offset);
 int getNbClient(char* mesg);
 int getLongueurNomClient(char* mesg, int offset);
 int getTypeDeModification(char* mesg);
+char* getSourceNom(int nomSourceLongueur, char* mesg, int longueurEntete);
+char* getCibleNom(int nomCibleLongueur, char* mesg, int longueurEntete );
+
 
 /*------------------------------------------------------------------------------*/
 
@@ -57,6 +62,7 @@ typedef struct infoclient {
 }infoclient;
 
 
+
 int digit_to_int(char d){
 	char str[2];
 	str[0] = d;
@@ -80,6 +86,18 @@ int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos)
 	return dataToReturn;
 }
 
+char* getSourceNom(int nomSourceLongueur, char* mesg, int longueurEntete) {
+	char* nomSource = calloc(nomSourceLongueur+1, 1);
+	strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
+	return nomSource;
+}
+
+char* getCibleNom(int nomCibleLongueur, char* mesg, int longueurEntete ) {
+	char* nomCible = calloc(nomCibleLongueur+1, 1);
+	strncpy(nomCible, &mesg[longueurEntete + nomCibleLongueur], nomCibleLongueur);
+	return nomCible;
+}
+
 int getSourceLongueur(char* mesg){
 	return getDonnees(mesg, 2, 1, 2, 0);
 }
@@ -99,7 +117,7 @@ int getPointsDeVie(char* mesg, int offset){
 int getNbClient(char* mesg){
 	return getDonnees(mesg, 2, 1, 2, 0);
 }
-
+//offset : taille entete + longueur nom de la source + longueur nom de la cible
 int getLongueurNomClient(char* mesg, int offset){
 	return getDonnees(mesg, 2, offset, offset + 1, 0);
 }
@@ -243,8 +261,12 @@ void decode(char* mesg) {
 		 nomSourceLongueur, nomSource);
 		free(nomSource);
 	}else if(mesg[0] == '8'){
-		perror("erreur : type de message non definit pour le moment.");
-		exit(1);
+		estMonTour = 1;
+		printf("Type de message : A TOI! \n longueurNomClient : %i\nomCible : %s\n",
+		 strlen(nomCible), nomCible);
+		//cest a ton tour
+		//perror("erreur : type de message non definit pour le moment.");
+		//exit(1);
 	}else if(mesg[0] == '9'){
 		//Fin du Jeu
 		estVictoire = getTypeDeModification(mesg);
@@ -255,6 +277,15 @@ void decode(char* mesg) {
 		exit(1);
 	}
 	printf("\n");
+}
+
+
+void sendMessage(int socket_descriptor, char* mesg ) {
+	if ((write(socket_descriptor, mesg, strlen(mesg)+1)) < 0) {
+		perror("erreur : impossible d'ecrire le message destine au serveur.");
+		exit(1);
+	}
+	printf("message envoye au serveur. \n");
 }
 
 
@@ -288,18 +319,16 @@ void decode(char* mesg) {
 
 
 
+int main(int argc, char **argv) {	
+	int socket_descriptor;
+	/* descripteur de socket */
+	//	int longueur; 				/* longueur d'un buffer utilisé */
 
+	//	sockaddr_in adresse_locale; /* adresse de socket local */
 
-
-int main(int argc, char **argv) {
-	int socket_descriptor; 		/* descripteur de socket */
-//	int longueur; 				/* longueur d'un buffer utilisé */
-
-//	sockaddr_in adresse_locale; /* adresse de socket local */
-
-//	hostent* ptr_host;  		/* info sur une machine hote */
-//	servent* ptr_service;  		/* info sur service */
-//	char buffer[256];
+	//	hostent* ptr_host;  		/* info sur une machine hote */
+	//	servent* ptr_service;  		/* info sur service */
+	//	char buffer[256];
 	char* prog; 				/* nom du programme */
 	hostent* ptr_host; 				/* nom de la machine distante */
 	char* mesg = malloc(256); 	/* message envoyé */
@@ -363,7 +392,7 @@ int main(int argc, char **argv) {
 
 
 	/*
-	if ((longueur = read(socket_descriptor, buffer, sizeof(buffer))) <= 0) {
+	if ((longueur = recv(socket_descriptor, buffer, sizeof(buffer))) <= 0) {
 		return (void*) 1;
 	}*/
 
@@ -374,48 +403,59 @@ int main(int argc, char **argv) {
 	estMonTour = 0;
 	while(deconnexion == 0){
 
-		while(estMonTour == 0){
+		if(estMonTour == 0){
 			//je lis
-			if((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
+			if((longueur = read(socket_descriptor, buffer, TAILLE_BUFFER-1)) > 0) {
 				printf("reponse du serveur : \n");
 				buffer[longueur] = '\0';
 				printf("%s\n", buffer);
-				//write(1,buffer,longueur);
-				decode(buffer);
-				printf("Message reçu.\n");
+				//write(1,buffer,longueur+1);
+				int typMess = getTypeMessage(buffer);
+				//si on a gagné ou perdu
+				if (typMess == 9) {
+					if (getTypeDeModification(buffer) == 1) {
+						printf("Bravo, vous avez gagne la partie\n");
+					}
+					else {
+						printf("Pas de bol, vous avez perdu la partie\n");
+					}
+					deconnexion = 1;
+					break;
+				}
+				//un message annoncant une mort 
+				else if ((typMess == 4)) {
+					if (!strcmp(getCibleNom(getCibleLongueur(buffer), nomClient, 9), nomClient)) {
+						printf("Vous etes malheureusement mort.\n");
+						printf("Si vous restez connectes, vous pourrez voir le reste du combat\n");
+					}
+					else {
+						//int nomCibleLongueur, char* mesg, int longueurEntete (9 sauf pour liste)
+						printf("%s est mort.\n", getCibleNom(getCibleLongueur(buffer), buffer, 9));
+					}
+				}
+				//message de deco
+				else if ((typMess == 6) && ((!strcmp(getCibleNom(getCibleLongueur(buffer), nomClient, 9), nomClient)) || (!strcmp(getSourceNom(getSourceLongueur(buffer), nomClient, 9), nomClient)))){
+					printf("Deconnexion\n");
+					deconnexion = 1;
+					break;
+				}
+				else if (0) {
+				}
+
+				//printf("Message reçu.\n");
 			}
 			else {
 				printf("erreur lecture \n");
 				break;
 			}
 		}
-
-	//	mesg = genMessage();
-
-		//sendMessage(numeroPort, nomClient, mesg);
-		if(getTypeMessage(mesg) == 6){
-			printf("Deconnexion du serveur.\n");
-			deconnexion = 1;
+		//CEST MON TOUR
+		else {
+			char* mesg = malloc(sizeof(char) * TAILLE_BUFFER);
+			sendMessage(socket_descriptor, mesg);
+			estMonTour = 0;
 		}
 	}
-
-/*
-	int endConnexion;
-
-	endConnexion = 1;
-	while(endConnexion > 0) {
-		printf("Message : ");
-		scanf("%s", mesg);
-		printf("%s \n", mesg);
-		mesg = genMessage(numeroPort, host, nomClient);
-		sendMessage(numeroPort, host, mesg);
-		if (mesg[0] == '6') {
-			endConnexion = 0;
-		} else {
-			endConnexion = 1;
-		}
-	}
-*/
 
 	free(mesg);
 	printf("\nfin de la reception.\n");

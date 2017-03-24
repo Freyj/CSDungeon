@@ -216,9 +216,117 @@ int joueursMorts() {
 /*------------------------------------------------------*/
 /*-------------------PAS FINI---------------------------*/
 char* action(char* buffer) {
-	char* res = "00000000000";
+	char* res = "90000000000";
 	return res;
 }
+
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+
+char* genMessage(char* nomSource, char* nomDest, int type, int tDm){
+	//requete liste client
+	char* message;
+	if(type == 7){
+		//boucle calculant la somme des noms 
+		int i;
+		int longueur = 0;
+		for (i = 0; i < nbJoueursCourants; ++i) {
+			longueur = longueur + strlen((char*) joueurs[i]->nomJoueur);
+		}
+		message = calloc(1 + 2 * nbJoueursCourants + longueur, 1); 
+		message = "5";
+		for (i = 0; i < nbJoueursCourants; ++i) {
+			if(strlen(joueurs[i]->nomJoueur) > 9){
+				message = strcat(message, (char*) strlen((char*) joueurs[i]->nomJoueur));
+			}else{
+				message = strcat(message, "0");
+				message = strcat(message, (char*) strlen((char*) joueurs[i]->nomJoueur));
+			}
+		}
+
+		for (i = 0;i < nbJoueursCourants; ++i) {
+			message = strcat(message, joueurs[i]->nomJoueur);
+		}
+	}
+	//deconnexion
+	else if (type == 6) {
+
+	}
+	//attaquer
+	else if (type == 1) {
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3, 1);
+		message = "3";
+		//longueur des noms
+		if(strlen(nomDest) > 9){
+			message = strcat(message, (char*) strlen(nomDest));
+		}else{
+			message = strcat(message, "0");
+			message = strcat(message, (char*) strlen(nomDest));
+		}
+		if(strlen(nomSource) > 9){
+			message = strcat(message, (char*) strlen(nomSource));
+		}else{
+			message = strcat(message, "0");
+			message = strcat(message, (char*) strlen(nomSource));
+		}
+		//concat
+		message = strcat(message, "0");
+		message = strcat(message, "003");
+		message = strcat(message, nomSource);
+		message = strcat(message, nomDest);
+		message = strcat(message, "005");
+	}
+	//soigner
+	else if (type == 2) {
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3, 1);
+		message = "3";
+		//longueur des noms
+		if(strlen(nomDest) > 9){
+			message = strcat(message, (char*) strlen(nomDest));
+		}else{
+			message = strcat(message, "0");
+			message = strcat(message, (char*) strlen(nomDest));
+		}
+		if(strlen(nomSource) > 9){
+			message = strcat(message, (char*) strlen(nomSource));
+		}else{
+			message = strcat(message, "0");
+			message = strcat(message, (char*) strlen(nomSource));
+		}
+		//concat
+		message = strcat(message, "1");
+		message = strcat(message, "003");
+		message = strcat(message, nomSource);
+		message = strcat(message, nomDest);
+		message = strcat(message, "005");
+	}
+	return message;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 int main(int argc, char** argv) {
@@ -275,7 +383,6 @@ int main(int argc, char** argv) {
 	  	listen(socket_descriptor,MAX_JOUEURS);
 
 		printf("Server initialise\n");
-
 		//printf("%d \n",local_address.sin_port);
 	  	//on attend la connexion de tous les joueurs
 	  	while(nbJoueursCourants < MAX_JOUEURS) {
@@ -316,8 +423,14 @@ int main(int argc, char** argv) {
 						//segfault
 						//printf("%d\n", joueurs[iterJoueur]->sock_desc);
 						setsockopt(joueurs[iterJoueur]->sock_desc, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&timeoutRead,sizeof(struct timeval));
-
-						longueur = read(joueurs[iterJoueur]->sock_desc, buffer, TAILLE_BUFFER);
+						//envoi du token au joueur en question
+						//generation du message, de type 8 (token), 0 parce qu'on s'en fiche
+						//50 = max size (large)
+						char* msg = malloc(sizeof(char) * 50);
+						msg = genMessage("server",joueurs[iterJoueur]->nomJoueur, 8, 0);
+						printf("%s\n", msg);
+						envoiTous(msg);
+						longueur = read(joueurs[iterJoueur]->sock_desc, buffer, TAILLE_BUFFER-1);
 						//runLogInt(errno,1);
 						//printf("%s\n", strerror(errno));
 						if (longueur < 0) {
@@ -341,7 +454,7 @@ int main(int argc, char** argv) {
 									printf("VICTOIRE\n");
 									//message de fin (le 9 envoie fin de jeu, le cinquième caractere determine vitoire
 									//ou défaite (1 ou 0))
-									char* bufferFinJeu = "90001";
+									char* bufferFinJeu = "900001";
 									envoiTous(bufferFinJeu);
 									printf("victoire des joueurs\n");
 									return 0;
@@ -369,7 +482,7 @@ int main(int argc, char** argv) {
 				//si ils sont tous morts, on envoi un message de défaite
 				//message de fin (le 9 envoie fin de jeu, le cinquième caractere determine vitoire
 				//ou défaite (1 ou 0))
-				char* bufferFinJeu = "90000";
+				char* bufferFinJeu = "900000";
 				envoiTous(bufferFinJeu);
 				printf("defaite des joueurs\n");
 				return 0;

@@ -156,3 +156,4 @@ int getPointsDeVie(char* mesg, int offset);
 int getNbClient(char* mesg);
 int getLongueurNomClient(char* mesg, int offset);
 int getTypeDeModification(char* mesg);
+char* genMessage(char* nomSource, char* nomDest, int type, int tDm);
