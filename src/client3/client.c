@@ -18,7 +18,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define TAILLE_BUFFER 256
+#define TAILLE_BUFFER 1024
 
 /*------------------------------------------------------------------------------*/
 

@@ -37,7 +37,7 @@ dans le client pardon je veux dire dans le thread client du serveur
 #define TAILLE_MAX_NOM 13
 #define MAX_JOUEURS 4
 #define MAX_TOURS 50
-#define TAILLE_BUFFER 256
+#define TAILLE_BUFFER 1024
 #define READ_TIMEOUT 3
 
 

@@ -233,72 +233,117 @@ char* genMessage(char* nomSource, char* nomDest, int type, int tDm){
 		for (i = 0; i < nbJoueursCourants; ++i) {
 			longueur = longueur + strlen((char*) joueurs[i]->nomJoueur);
 		}
-		message = calloc(1 + 2 * nbJoueursCourants + longueur, 1); 
-		message = "5";
+		printf("Taille\n");
+		printf("%i\n", TAILLE_BUFFER);
+		message = calloc(TAILLE_BUFFER, 1);
+		message = strncat(message, "5\0", 2);
 		for (i = 0; i < nbJoueursCourants; ++i) {
+			printf("i : %i\n", i);
 			if(strlen(joueurs[i]->nomJoueur) > 9){
-				message = strcat(message, (char*) strlen((char*) joueurs[i]->nomJoueur));
+				printf("%s\n", message);
+				message = strcat(message, "bob\0");
+				printf("%s\n", message);
+
+				message = strcat(message, (char*) strlen("bob192874547454454"));
 			}else{
-				message = strcat(message, "0");
-				message = strcat(message, (char*) strlen((char*) joueurs[i]->nomJoueur));
+				message = strncat(message, "0\0", 1);
+				message = strncat(message, (char*) strlen((char*) joueurs[i]->nomJoueur), 1);
 			}
 		}
 
 		for (i = 0;i < nbJoueursCourants; ++i) {
 			message = strcat(message, joueurs[i]->nomJoueur);
 		}
+
+		message = strcat(message, "\0");
 	}
 	//deconnexion
 	else if (type == 6) {
-
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		message = "6";	
+		//longueur des noms
+		if(strlen(nomDest) > 9){
+			message = strncat(message, (char*) strlen(nomDest), 2);
+		}else{
+			message = strncat(message, "0", 1);
+			message = strncat(message, (char*) strlen(nomDest), 1);
+		}
+		if(strlen(nomSource) > 9){
+			message = strncat(message, (char*) strlen(nomSource), 2);
+		}else{
+			message = strncat(message, "0", 1);
+			message = strncat(message, (char*) strlen(nomSource), 1);
+		}
+		message = strcat(message, "\0");
 	}
 	//attaquer
 	else if (type == 1) {
-		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3, 1);
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
 		message = "3";
 		//longueur des noms
 		if(strlen(nomDest) > 9){
-			message = strcat(message, (char*) strlen(nomDest));
+			message = strncat(message, (char*) strlen(nomDest), 2);
 		}else{
-			message = strcat(message, "0");
-			message = strcat(message, (char*) strlen(nomDest));
+			message = strncat(message, "0", 1);
+			message = strncat(message, (char*) strlen(nomDest), 1);
 		}
 		if(strlen(nomSource) > 9){
-			message = strcat(message, (char*) strlen(nomSource));
+			message = strncat(message, (char*) strlen(nomSource), 2);
 		}else{
-			message = strcat(message, "0");
-			message = strcat(message, (char*) strlen(nomSource));
+			message = strncat(message, "0", 1);
+			message = strncat(message, (char*) strlen(nomSource), 1);;
 		}
 		//concat
-		message = strcat(message, "0");
-		message = strcat(message, "003");
-		message = strcat(message, nomSource);
-		message = strcat(message, nomDest);
-		message = strcat(message, "005");
+		message = strncat(message, "0", 1);
+		message = strncat(message, "003", 3);
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, nomDest, strlen(nomDest));
+		message = strncat(message, "005", 3);
+		message = strncat(message, "\0", 1);
 	}
 	//soigner
 	else if (type == 2) {
-		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3, 1);
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
 		message = "3";
 		//longueur des noms
 		if(strlen(nomDest) > 9){
-			message = strcat(message, (char*) strlen(nomDest));
+			message = strncat(message, (char*) strlen(nomDest), 2);
 		}else{
-			message = strcat(message, "0");
-			message = strcat(message, (char*) strlen(nomDest));
+			message = strncat(message, "0", 1);
+			message = strncat(message, (char*) strlen(nomDest), 1);
 		}
 		if(strlen(nomSource) > 9){
-			message = strcat(message, (char*) strlen(nomSource));
+			message = strncat(message, (char*) strlen(nomSource), 2);
 		}else{
-			message = strcat(message, "0");
-			message = strcat(message, (char*) strlen(nomSource));
+			message = strncat(message, "0", 1);
+			message = strncat(message, (char*) strlen(nomSource), 1);
 		}
 		//concat
-		message = strcat(message, "1");
-		message = strcat(message, "003");
-		message = strcat(message, nomSource);
-		message = strcat(message, nomDest);
-		message = strcat(message, "005");
+		message = strncat(message, "1", 1);
+		message = strncat(message, "003", 3);
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, nomDest, strlen(nomDest));
+		message = strncat(message, "005", 3);
+		message = strncat(message, "\0", 1);
+
+	}
+	else if (type == 8) {
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomSource)+10, 1);
+		message = "8";
+		if(strlen(nomSource) > 9){
+			message = strncat(message, (char*) strlen(nomSource), 2);
+		}else{
+			printf("test\n");
+			printf("%s\n", message);
+			printf("%d\n", 1 + 2 + 2 + 3 + 1 + strlen(nomSource)+1);
+			message = strncat(message, "0", 1);
+			message = strncat(message, (char*) strlen(nomSource), 1);
+		}
+		message = strncat(message, "00", 2);
+		message = strncat(message, "0", 1);
+		message = strncat(message, "000", 3);
+		message = strncat(message, nomDest, strlen(nomDest));
+		message = strncat(message, "\0", 1);
 	}
 	return message;
 }
@@ -402,7 +447,7 @@ int main(int argc, char** argv) {
 
 			//initialise le joueur ET incrémente le nbJoueursCourant. (ajoute dans le tableau)
 			//how to get a name ?
-			initJoueur(new_socket_descriptor, "Bobby", adresse_client_courant);
+			initJoueur(new_socket_descriptor, "Bobby123456789", adresse_client_courant);
 		}
 
 		int tourCpt;
@@ -426,8 +471,8 @@ int main(int argc, char** argv) {
 						//envoi du token au joueur en question
 						//generation du message, de type 8 (token), 0 parce qu'on s'en fiche
 						//50 = max size (large)
-						char* msg = malloc(sizeof(char) * 50);
-						msg = genMessage("server",joueurs[iterJoueur]->nomJoueur, 8, 0);
+						char* msg = calloc(TAILLE_BUFFER, sizeof(char));
+						msg = genMessage(joueurs[iterJoueur]->nomJoueur,joueurs[iterJoueur]->nomJoueur, 7, 0);
 						printf("%s\n", msg);
 						envoiTous(msg);
 						longueur = read(joueurs[iterJoueur]->sock_desc, buffer, TAILLE_BUFFER-1);
