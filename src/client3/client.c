@@ -86,13 +86,15 @@ int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos)
 	return dataToReturn;
 }
 
-char* getSourceNom(int nomSourceLongueur, char* mesg, int longueurEntete) {
+char* getSourceNom(char* mesg, int longueurEntete) {
+	int nomSourceLongueur = getSourceLongueur(mesg);
 	char* nomSource = calloc(nomSourceLongueur+1, 1);
 	strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
 	return nomSource;
 }
 
-char* getCibleNom(int nomCibleLongueur, char* mesg, int longueurEntete ) {
+char* getCibleNom(char* mesg, int longueurEntete ) {
+	int nomCibleLongueur = getCibleLongueur(mesg);
 	char* nomCible = calloc(nomCibleLongueur+1, 1);
 	strncpy(nomCible, &mesg[longueurEntete + nomCibleLongueur], nomCibleLongueur);
 	return nomCible;
