@@ -1,7 +1,7 @@
 /**
  * @Authors : Charlene Servantie, Charles-Eric Begaudeau
  * @Date : 2017
- * @Version : 0.2
+ * @Version : 0.3
  * @brief : 
 */
 /*----------------------------------------------
@@ -64,16 +64,18 @@ int getTypeMessage(char* mesg){
 	return getDonnees(mesg, 1, 0, 0, 0);
 }
 
-char* getCibleNom(int nomCibleLongueur, char* mesg, int longueurEntete ) {
-	char* nomCible = calloc(nomCibleLongueur+1, 1);
-	strncpy(nomCible, &mesg[longueurEntete + nomCibleLongueur], nomCibleLongueur);
-	return nomCible;
-}
-
-char* getSourceNom(int nomSourceLongueur, char* mesg, int longueurEntete) {
+char* getSourceNom(char* mesg, int longueurEntete) {
+	int nomSourceLongueur = getSourceLongueur(mesg);
 	char* nomSource = calloc(nomSourceLongueur+1, 1);
 	strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
 	return nomSource;
+}
+
+char* getCibleNom(char* mesg, int longueurEntete) {
+	int nomCibleLongueur = getCibleLongueur(mesg);
+	char* nomCible = calloc(nomCibleLongueur+1, 1);
+	strncpy(nomCible, &mesg[longueurEntete + getSourceLongueur(mesg)], nomCibleLongueur);
+	return nomCible;
 }
 
 /*------------------------------------------------------*/
@@ -656,25 +658,28 @@ int main(int argc, char** argv) {
 				printf("%s\n", "AHHHHHHHHHHHHHHHHHHH");
 			}
 			int longueur;
-			longueur = read(joueurs[iterJoueur]->sock_desc, buffer, TAILLE_BUFFER-1);
+			char buffer[TAILLE_BUFFER];
+			memset(buffer, '0', TAILLE_BUFFER);
+			longueur = read(new_socket_descriptor, buffer, TAILLE_BUFFER-1);
 			//runLogInt(errno,1);
 			//printf("%s\n", strerror(errno));
 			if (longueur < 0) {
 				printf("ERROR DE READ\n");
-				joueurs[iterJoueur] = NULL;
 			}
 			else if (longueur == 0) {
-				printf("CLOSE DE SOCKET\n");
-				joueurs[iterJoueur] = NULL;							
+				printf("Disconnect du client\n");		
 			}
 			if (longueur > 0) {
-				joueurs[iterJoueur]->
+				printf("%d\n", longueur);
+				//initialise le joueur ET incrémente le nbJoueursCourant. (ajoute dans le tableau)
+				//init de nom pourri pour tes
+				printf("reception\n");
+				printf("%s\n", buffer);
+				printf("nom du client qui se connecte\n");
+				printf("%s\n", getSourceNom(buffer, 9));
+				printf("%s\n", "fin reception");
+				initJoueur(new_socket_descriptor, getSourceNom(buffer, 9), adresse_client_courant);
 			}
-
-
-			//initialise le joueur ET incrémente le nbJoueursCourant. (ajoute dans le tableau)
-			//init de nom pourri pour test
-			initJoueur(new_socket_descriptor, "Bob", adresse_client_courant);
 		}
 
 		int tourCpt;

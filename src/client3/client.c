@@ -1,7 +1,7 @@
 /**
  * @Authors : Charlène Servantie, Charles-Eric Begaudeau
  * @Date : 2017
- * @Version : 0.1
+ * @Version : 0.3
  * @brief : 
 */
 
@@ -96,7 +96,7 @@ char* getSourceNom(char* mesg, int longueurEntete) {
 char* getCibleNom(char* mesg, int longueurEntete) {
 	int nomCibleLongueur = getCibleLongueur(mesg);
 	char* nomCible = calloc(nomCibleLongueur+1, 1);
-	strncpy(nomCible, &mesg[longueurEntete + nomCibleLongueur], nomCibleLongueur);
+	strncpy(nomCible, &mesg[longueurEntete + getSourceLongueur(mesg)], nomCibleLongueur);
 	return nomCible;
 }
 
@@ -333,7 +333,7 @@ void choixMessage(int socket_descriptor, char* nomSource, int* returnTypeMessage
 
 void sendMessage(int socket_descriptor, char* mesg) {
 	if ((write(socket_descriptor, mesg, strlen(mesg)+1)) < 0) {
-		perror("erreur : impossible d'ecrire le message destine au serveur.");
+		perror("erreur : impossible d'ecrire le message destine au serveur.\n");
 		exit(1);
 	}
 	printf("message envoye au serveur. \n");
@@ -476,6 +476,20 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 	return message;
 }
 
+void transmissionDonneesinitiale(int socket_descriptor, char* nomClient ) {
+	printf("envoi initial\n");
+	printf("%s\n", nomClient);
+	char* buffer = genMessage(nomClient, "bob", 0);
+	printf("%s\n", buffer);
+	sendMessage(socket_descriptor, buffer);
+	printf("envoi initial terminé\n");
+}
+
+
+
+
+
+
 
 
 
@@ -537,7 +551,7 @@ int main(int argc, char **argv) {
 
 
 	if (argc != 4) {
-		perror("usage : client <adresse-serveur> <numero-port> <client-name>");
+		perror("usage : client <adresse-serveur> <numero-port> <client-name>\n");
 		exit(1);
 	}
 
@@ -551,7 +565,7 @@ int main(int argc, char **argv) {
 	printf("nom du client  : %s \n", nomClient);
 
 	if ((ptr_host = gethostbyname(host)) == NULL) {
-		perror("erreur : impossible de trouver le serveur a partir de son adresse.");
+		perror("erreur : impossible de trouver le serveur a partir de son adresse.\n");
 		exit(1);
 	}
 	/* copie caractere par caractere des infos de ptr_host vers adresse_locale */
@@ -565,13 +579,13 @@ int main(int argc, char **argv) {
 
 	/* creation de la socket */
 	if ((socket_descriptor = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		perror("erreur : impossible de creer la socket de connexion avec le serveur.");
+		perror("erreur : impossible de creer la socket de connexion avec le serveur.\n");
 		exit(1);
 	}
 
 	/* tentative de connexion au serveur dont les infos sont dans adresse_locale */
 	if ((connect(socket_descriptor, (sockaddr*)(&adresse_locale), sizeof(adresse_locale))) < 0) {
-		perror("erreur : impossible de se connecter au serveur.");
+		perror("erreur : impossible de se connecter au serveur.\n");
 		exit(1);
 	}
 	longueur_adresse_courante = sizeof(adresse_client_courant);
@@ -583,7 +597,7 @@ int main(int argc, char **argv) {
 	}*/
 
 
-	//transmissionDonnees();
+	transmissionDonneesinitiale(socket_descriptor, nomClient );
 
 	deconnexion = 0;
 	estMonTour = 0;
@@ -597,6 +611,7 @@ int main(int argc, char **argv) {
 				printf("%s\n", buffer);
 				//write(1,buffer,longueur+1);
 				int typMess = getTypeMessage(buffer);
+				printf("%d\n", typMess);
 				//si on a gagné ou perdu
 				if (typMess == 9) {
 					if (getTypeDeModification(buffer) == 1) {
@@ -610,7 +625,7 @@ int main(int argc, char **argv) {
 				}
 				//un message annoncant une mort 
 				else if ((typMess == 4)) {
-					if (!strcmp(getCibleNom(nomClient, 9), nomClient)) {
+					if (!strcmp(getCibleNom(buffer, 9), nomClient)) {
 						printf("Vous etes malheureusement mort.\n");
 						printf("Si vous restez connectes, vous pourrez voir le reste du combat\n");
 					}
@@ -620,12 +635,37 @@ int main(int argc, char **argv) {
 					}
 				}
 				//message de deco
-				else if ((typMess == 6) && ((!strcmp(getCibleNom(nomClient, 9), nomClient)) || (!strcmp(getSourceNom(nomClient, 9), nomClient)))){
+				else if (typMess == 6){
+					if ((!strcmp(getCibleNom(buffer, 9), nomClient)) || (!strcmp(getSourceNom(buffer, 9), nomClient))) {
+						printf("testCMP DECO\n");
+					}
+					else {
+						printf("testCMP DECO ELSE\n");
+					}
 					printf("Deconnexion\n");
 					deconnexion = 1;
 					break;
 				}
-				else if (0) {
+				//message de c'est ton tour
+				else if (typMess == 8)  {
+					printf("%s\n", "TEST AFFICHAGE BUFFER");
+					printf("%s\n", buffer);
+					printf("%s\n", "FIN TEST AFFICHAGE BUFFER");
+					printf("%s\n", "TEST AFFICHAGE NOM");
+					printf("%s\n", getCibleNom(buffer, 9));
+					printf("%s\n", nomClient);
+					printf("%s\n", "FIN TEST AFFICHAGE NOM");
+					if ((!strcmp(getCibleNom(buffer, 9), nomClient))) {
+						printf("C'est mon tour\n");
+						estMonTour = 1;
+					}
+					else {
+						printf("%s\n", "C'est pas mon tour!\n");
+					}
+				}
+				else {
+					printf("Message reçu \n");
+					decode(buffer);
 				}
 
 				//printf("Message reçu.\n");

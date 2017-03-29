@@ -155,6 +155,8 @@ int getDonneesLongueur(char* mesg);
 int getPointsDeVie(char* mesg, int offset);
 int getNbClient(char* mesg);
 int getLongueurNomClient(char* mesg, int offset);
+char* getSourceNom(char* mesg, int longueurEntete);
+char* getCibleNom(char* mesg, int longueurEntete);
 int getTypeDeModification(char* mesg);
 char* genMessage(char* nomSource, char* nomDest, int type);
 void decode(char* mesg);
