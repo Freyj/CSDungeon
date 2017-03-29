@@ -388,7 +388,7 @@ char* genMessageClient(char* nomSource, char* nomDest, int type){
 		message = strncat(message, nomDest, strlen(nomDest));
 		message = strncat(message, "005", 3);
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}else if (type == 2) {
 		//soigner
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
@@ -416,7 +416,7 @@ char* genMessageClient(char* nomSource, char* nomDest, int type){
 		message = strncat(message, nomDest, strlen(nomDest));
 		message = strncat(message, "005", 3);
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}else if (type == 6) {	
 		//deconnexion
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
@@ -439,7 +439,7 @@ char* genMessageClient(char* nomSource, char* nomDest, int type){
 
 		message = strncat(message, nomSource, strlen(nomSource));
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}else if (type == 7){
 		//Demande noms des clients
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
@@ -462,7 +462,7 @@ char* genMessageClient(char* nomSource, char* nomDest, int type){
 
 		message = strncat(message, nomSource, strlen(nomSource));
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}
 	free(bufferGenMessage);
 	return message;
@@ -501,7 +501,7 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 		message = strncat(message, nomDest, strlen(nomDest));
 		message = strncat(message, "005", 3);
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}else if (type == 2) {
 		//soigner
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
@@ -529,7 +529,7 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 		message = strncat(message, nomDest, strlen(nomDest));
 		message = strncat(message, "005", 3);
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}else if (type == 6) {	
 		//deconnexion
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomSource) + 3 + 1, 1);
@@ -552,7 +552,7 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 
 		message = strncat(message, nomSource, strlen(nomSource));
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}else if (type == 7){
 		//boucle calculant la somme des noms 
 		int i;
@@ -575,7 +575,7 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 			message = strcat(message, joueurs[i]->nomJoueur);
 		}
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}else if (type == 8) {
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomSource)+10, 1);
 		strcpy (bufferGenMessage, "8");
@@ -599,7 +599,7 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 
 		message = strncat(message, nomSource, strlen(nomSource));
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}
 	free(bufferGenMessage);
 	return message;
@@ -646,21 +646,39 @@ int main(){
 	m8 = "806000000ELDRAD";
 	decode(m8);
 
-
+	char* message;
 	printf("------------------------------------------------\n genMessage\n");
 	printf("------------------------------------------------\n\n");
-	genMessage("ELDRAD", "BOB", 1);
-	genMessage("ELDRAD", "BOB", 2);
-	genMessage("ELDRAD", "BOB", 6);
-	genMessage("ELDRAD", "BOB", 7);
-	genMessage("ELDRAD", "BOB", 8);
+	
+	message = genMessage("ELDRAD", "BOB", 1);
+	decode(message);
+	
+	message = genMessage("ELDRAD", "BOB", 2);
+	decode(message);
+	
+	message = genMessage("ELDRAD", "BOB", 6);
+	decode(message);
+	
+	message = genMessage("ELDRAD", "BOB", 7);
+	decode(message);
+	
+	message = genMessage("ELDRAD", "BOB", 8);
+	decode(message);
 
 	printf("------------------------------------------------\n genMessageClient\n");
 	printf("------------------------------------------------\n\n");
-	genMessageClient("ELDRAD", "BOB", 1);
-	genMessageClient("ELDRAD", "BOB", 2);
-	genMessageClient("ELDRAD", "BOB", 6);
-	genMessageClient("ELDRAD", "BOB", 7);
+	
+	message = genMessageClient("ELDRAD", "BOB", 1);
+	decode(message);
+	
+	message = genMessageClient("ELDRAD", "BOB", 2);
+	decode(message);
+	
+	message = genMessageClient("ELDRAD", "BOB", 6);
+	decode(message);
+	
+	message = genMessageClient("ELDRAD", "BOB", 7);
+	decode(message);
 /*
 	free(m1);
 	free(m2);
