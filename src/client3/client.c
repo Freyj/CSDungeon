@@ -34,9 +34,9 @@ int getPointsDeVie(char* mesg, int offset);
 int getNbClient(char* mesg);
 int getLongueurNomClient(char* mesg, int offset);
 int getTypeDeModification(char* mesg);
-char* getSourceNom(int nomSourceLongueur, char* mesg, int longueurEntete);
-char* getCibleNom(int nomCibleLongueur, char* mesg, int longueurEntete );
-
+char* getSourceNom(char* mesg, int longueurEntete);
+char* getCibleNom(char* mesg, int longueurEntete);
+void sendMessage(int socket_descriptor, char* mesg);
 
 /*------------------------------------------------------------------------------*/
 
@@ -93,7 +93,7 @@ char* getSourceNom(char* mesg, int longueurEntete) {
 	return nomSource;
 }
 
-char* getCibleNom(char* mesg, int longueurEntete ) {
+char* getCibleNom(char* mesg, int longueurEntete) {
 	int nomCibleLongueur = getCibleLongueur(mesg);
 	char* nomCible = calloc(nomCibleLongueur+1, 1);
 	strncpy(nomCible, &mesg[longueurEntete + nomCibleLongueur], nomCibleLongueur);
@@ -263,9 +263,14 @@ void decode(char* mesg) {
 		 nomSourceLongueur, nomSource);
 		free(nomSource);
 	}else if(mesg[0] == '8'){
-		estMonTour = 1;
-		printf("Type de message : A TOI! \n longueurNomClient : %i\nomCible : %s\n",
-		 strlen(nomCible), nomCible);
+		//estMonTour = 1;
+		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
+		//typeDeModification inutile					//5
+		//donneesLongueur = getDonneesLongueur(mesg);	//6 | 7 | 8
+		nomCible = calloc(nomCibleLongueur+1, 1);
+		strncpy(nomCible, &mesg[longueurEntete], nomCibleLongueur);
+		printf("Type de message : C'EST AU TOUR DE ! \n longueurNomClient : %i\nnomCible : %s\n",
+		 nomCibleLongueur, nomCible);
 		//cest a ton tour
 		//perror("erreur : type de message non definit pour le moment.");
 		//exit(1);
@@ -281,32 +286,52 @@ void decode(char* mesg) {
 	printf("\n");
 }
 
-void choixMessage(int socket_descriptor, char* nomSource, int &returnTypeMessage, char* &returnNomDest){
+void choixMessage(int socket_descriptor, char* nomSource, int* returnTypeMessage, char* returnNomDest){
 	char* message;
 	int choixCible;
 	int nbClient;
-	char* clients[] = calloc(TAILLE_BUFFER, 1);
+	int longueurNomClient[nbClient];
+	int offset = 0;
+	int i;
+	char* reponse = calloc(TAILLE_BUFFER, 1);
+
+
+
 	message = genMessage(nomSource, "", 7);
 	sendMessage(socket_descriptor, message);
 
 	//WAIT FOR SERVER'S REPONSE
 	//DISPLAY SERVER'S REPONSE
+	//PUT SERVER'S REPONSE IN A REPONSE
 	//PUT EVERY NAME IN CLIENT[]
 	//DO nbClient = nbClient + 1; AFTER EACH ADD IN CLIENT[]
 
+	nbClient = getNbClient(reponse);					//1 | 2 NBCLIENT
+	for(i = 0; i < nbClient; ++i){
+		offset = 2 * i + 3;
+		longueurNomClient[i] = getLongueurNomClient(reponse, offset);
+		//printf("longueurNomClient a la position : %i -- %i\n", i, longueurNomClient[i]);
+		//sommeLongueur = sommeLongueur + longueurNomClient[i];
+	}
+	offset = offset + 2;
+	char * nomsClients[nbClient];
+	for(i = 0; i < nbClient; ++i){
+		nomsClients[i] = calloc(longueurNomClient[i]+1, 1);
+		strncpy(nomsClients[i], &reponse[offset], longueurNomClient[i]);
+		offset = longueurNomClient[i] + offset;
+	}
+
 	printf("Appuyer sur :\n\t1 pour attaquer\n\t2 pour soigner\n\t 6 pour quitter\n");
-	scanf("%d", &returnTypeMessage);
-	int i;
+	scanf("%d", returnTypeMessage);
 	printf("Choix de la cible :\n");
 	for(i = 0; i < nbClient; ++i){
-		printf("\t %i %s", i + 1, clients[i]);
+		printf("\t %i %s", i + 1, nomsClients[i]);
 	}
 	scanf("%d", &choixCible);
-	returnNomDest = clients[i - 1];
-
+	returnNomDest = nomsClients[i - 1];
 }
 
-void sendMessage(int socket_descriptor, char* mesg ) {
+void sendMessage(int socket_descriptor, char* mesg) {
 	if ((write(socket_descriptor, mesg, strlen(mesg)+1)) < 0) {
 		perror("erreur : impossible d'ecrire le message destine au serveur.");
 		exit(1);
@@ -498,7 +523,7 @@ int main(int argc, char **argv) {
 	nomClient = argv[3];
 
 	printf("nom de l'executable : %s \n", prog);
-	printf("adresse du serveur  : %s \n", ptr_host);
+	printf("adresse du serveur  : %s \n", host);
 	printf("nom du client  : %s \n", nomClient);
 
 	if ((ptr_host = gethostbyname(host)) == NULL) {
@@ -561,17 +586,17 @@ int main(int argc, char **argv) {
 				}
 				//un message annoncant une mort 
 				else if ((typMess == 4)) {
-					if (!strcmp(getCibleNom(getCibleLongueur(buffer), nomClient, 9), nomClient)) {
+					if (!strcmp(getCibleNom(nomClient, 9), nomClient)) {
 						printf("Vous etes malheureusement mort.\n");
 						printf("Si vous restez connectes, vous pourrez voir le reste du combat\n");
 					}
 					else {
 						//int nomCibleLongueur, char* mesg, int longueurEntete (9 sauf pour liste)
-						printf("%s est mort.\n", getCibleNom(getCibleLongueur(buffer), buffer, 9));
+						printf("%s est mort.\n", getCibleNom(buffer, 9));
 					}
 				}
 				//message de deco
-				else if ((typMess == 6) && ((!strcmp(getCibleNom(getCibleLongueur(buffer), nomClient, 9), nomClient)) || (!strcmp(getSourceNom(getSourceLongueur(buffer), nomClient, 9), nomClient)))){
+				else if ((typMess == 6) && ((!strcmp(getCibleNom(nomClient, 9), nomClient)) || (!strcmp(getSourceNom(nomClient, 9), nomClient)))){
 					printf("Deconnexion\n");
 					deconnexion = 1;
 					break;
