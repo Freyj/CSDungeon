@@ -23,7 +23,7 @@
 /*------------------------------------------------------------------------------*/
 
 void* Ecoute(void* arg);
-char * genMessage (int port, char* host, char* nomClient);
+char* genMessage(char* nomSource, char* nomDest, int type);
 int sendRequeteNBClient(int port, char* host, char* mesg, char* clients[] );
 void decode(char* mesg);
 int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos);
@@ -34,9 +34,9 @@ int getPointsDeVie(char* mesg, int offset);
 int getNbClient(char* mesg);
 int getLongueurNomClient(char* mesg, int offset);
 int getTypeDeModification(char* mesg);
-char* getSourceNom(int nomSourceLongueur, char* mesg, int longueurEntete);
-char* getCibleNom(int nomCibleLongueur, char* mesg, int longueurEntete );
-
+char* getSourceNom(char* mesg, int longueurEntete);
+char* getCibleNom(char* mesg, int longueurEntete);
+void sendMessage(int socket_descriptor, char* mesg);
 
 /*------------------------------------------------------------------------------*/
 
@@ -86,13 +86,15 @@ int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos)
 	return dataToReturn;
 }
 
-char* getSourceNom(int nomSourceLongueur, char* mesg, int longueurEntete) {
+char* getSourceNom(char* mesg, int longueurEntete) {
+	int nomSourceLongueur = getSourceLongueur(mesg);
 	char* nomSource = calloc(nomSourceLongueur+1, 1);
 	strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
 	return nomSource;
 }
 
-char* getCibleNom(int nomCibleLongueur, char* mesg, int longueurEntete ) {
+char* getCibleNom(char* mesg, int longueurEntete) {
+	int nomCibleLongueur = getCibleLongueur(mesg);
 	char* nomCible = calloc(nomCibleLongueur+1, 1);
 	strncpy(nomCible, &mesg[longueurEntete + nomCibleLongueur], nomCibleLongueur);
 	return nomCible;
@@ -261,9 +263,14 @@ void decode(char* mesg) {
 		 nomSourceLongueur, nomSource);
 		free(nomSource);
 	}else if(mesg[0] == '8'){
-		estMonTour = 1;
-		printf("Type de message : A TOI! \n longueurNomClient : %i\nomCible : %s\n",
-		 strlen(nomCible), nomCible);
+		//estMonTour = 1;
+		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
+		//typeDeModification inutile					//5
+		//donneesLongueur = getDonneesLongueur(mesg);	//6 | 7 | 8
+		nomCible = calloc(nomCibleLongueur+1, 1);
+		strncpy(nomCible, &mesg[longueurEntete], nomCibleLongueur);
+		printf("Type de message : C'EST AU TOUR DE ! \n longueurNomClient : %i\nnomCible : %s\n",
+		 nomCibleLongueur, nomCible);
 		//cest a ton tour
 		//perror("erreur : type de message non definit pour le moment.");
 		//exit(1);
@@ -279,8 +286,52 @@ void decode(char* mesg) {
 	printf("\n");
 }
 
+void choixMessage(int socket_descriptor, char* nomSource, int* returnTypeMessage, char* returnNomDest){
+	char* message;
+	int choixCible;
+	int nbClient;
+	int longueurNomClient[nbClient];
+	int offset = 0;
+	int i;
+	char* reponse = calloc(TAILLE_BUFFER, 1);
 
-void sendMessage(int socket_descriptor, char* mesg ) {
+
+
+	message = genMessage(nomSource, "", 7);
+	sendMessage(socket_descriptor, message);
+
+	//WAIT FOR SERVER'S REPONSE
+	//DISPLAY SERVER'S REPONSE
+	//PUT SERVER'S REPONSE IN A REPONSE
+	//PUT EVERY NAME IN CLIENT[]
+	//DO nbClient = nbClient + 1; AFTER EACH ADD IN CLIENT[]
+
+	nbClient = getNbClient(reponse);					//1 | 2 NBCLIENT
+	for(i = 0; i < nbClient; ++i){
+		offset = 2 * i + 3;
+		longueurNomClient[i] = getLongueurNomClient(reponse, offset);
+		//printf("longueurNomClient a la position : %i -- %i\n", i, longueurNomClient[i]);
+		//sommeLongueur = sommeLongueur + longueurNomClient[i];
+	}
+	offset = offset + 2;
+	char * nomsClients[nbClient];
+	for(i = 0; i < nbClient; ++i){
+		nomsClients[i] = calloc(longueurNomClient[i]+1, 1);
+		strncpy(nomsClients[i], &reponse[offset], longueurNomClient[i]);
+		offset = longueurNomClient[i] + offset;
+	}
+
+	printf("Appuyer sur :\n\t1 pour attaquer\n\t2 pour soigner\n\t 6 pour quitter\n");
+	scanf("%d", returnTypeMessage);
+	printf("Choix de la cible :\n");
+	for(i = 0; i < nbClient; ++i){
+		printf("\t %i %s", i + 1, nomsClients[i]);
+	}
+	scanf("%d", &choixCible);
+	returnNomDest = nomsClients[i - 1];
+}
+
+void sendMessage(int socket_descriptor, char* mesg) {
 	if ((write(socket_descriptor, mesg, strlen(mesg)+1)) < 0) {
 		perror("erreur : impossible d'ecrire le message destine au serveur.");
 		exit(1);
@@ -289,6 +340,117 @@ void sendMessage(int socket_descriptor, char* mesg ) {
 }
 
 
+
+char* genMessage(char* nomSource, char* nomDest, int type){
+
+	char* message;
+	char* bufferGenMessage = calloc(5, 1);
+	if (type == 1) {
+		//attaquer
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "1");
+		message = strcat(message, bufferGenMessage);
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+
+		if(strlen(nomDest) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomDest)); 
+		message = strcat(message, bufferGenMessage);
+
+		//concat
+		message = strncat(message, "0", 1);
+		message = strncat(message, "003", 3);
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, nomDest, strlen(nomDest));
+		message = strncat(message, "005", 3);
+		message = strncat(message, "\0", 1);
+		//decode(message);
+	}else if (type == 2) {
+		//soigner
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "2");
+		message = strcat(message, bufferGenMessage);
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+
+		if(strlen(nomDest) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomDest)); 
+		message = strcat(message, bufferGenMessage);
+
+		//concat
+		message = strncat(message, "1", 1);
+		message = strncat(message, "003", 3);
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, nomDest, strlen(nomDest));
+		message = strncat(message, "005", 3);
+		message = strncat(message, "\0", 1);
+		//decode(message);
+	}else if (type == 6) {	
+		//deconnexion
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "6");
+		message = strcat(message, bufferGenMessage);	
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+		
+		strcpy (bufferGenMessage, "00");//LongueurSource
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "0");//TDM
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "000");//LongueurDonnees
+		message = strcat(message, bufferGenMessage);
+
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, "\0", 1);
+		//decode(message);
+	}else if (type == 7){
+		//Demande noms des clients
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "7");
+		message = strcat(message, bufferGenMessage);	
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+		
+		strcpy (bufferGenMessage, "00");//LongueurSource
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "0");//TDM
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "000");//LongueurDonnees
+		message = strcat(message, bufferGenMessage);
+
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, "\0", 1);
+		//decode(message);
+	}
+	free(bufferGenMessage);
+	return message;
+}
 
 
 
@@ -361,7 +523,7 @@ int main(int argc, char **argv) {
 	nomClient = argv[3];
 
 	printf("nom de l'executable : %s \n", prog);
-	printf("adresse du serveur  : %s \n", ptr_host);
+	printf("adresse du serveur  : %s \n", host);
 	printf("nom du client  : %s \n", nomClient);
 
 	if ((ptr_host = gethostbyname(host)) == NULL) {
@@ -424,17 +586,17 @@ int main(int argc, char **argv) {
 				}
 				//un message annoncant une mort 
 				else if ((typMess == 4)) {
-					if (!strcmp(getCibleNom(getCibleLongueur(buffer), nomClient, 9), nomClient)) {
+					if (!strcmp(getCibleNom(nomClient, 9), nomClient)) {
 						printf("Vous etes malheureusement mort.\n");
 						printf("Si vous restez connectes, vous pourrez voir le reste du combat\n");
 					}
 					else {
 						//int nomCibleLongueur, char* mesg, int longueurEntete (9 sauf pour liste)
-						printf("%s est mort.\n", getCibleNom(getCibleLongueur(buffer), buffer, 9));
+						printf("%s est mort.\n", getCibleNom(buffer, 9));
 					}
 				}
 				//message de deco
-				else if ((typMess == 6) && ((!strcmp(getCibleNom(getCibleLongueur(buffer), nomClient, 9), nomClient)) || (!strcmp(getSourceNom(getSourceLongueur(buffer), nomClient, 9), nomClient)))){
+				else if ((typMess == 6) && ((!strcmp(getCibleNom(nomClient, 9), nomClient)) || (!strcmp(getSourceNom(nomClient, 9), nomClient)))){
 					printf("Deconnexion\n");
 					deconnexion = 1;
 					break;

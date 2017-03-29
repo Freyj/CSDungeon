@@ -357,10 +357,121 @@ int sendRequeteNBClient(int port, char* host, char* mesg, char* clients[] ) {
 
 
 
+char* genMessageClient(char* nomSource, char* nomDest, int type){
+
+	char* message;
+	char* bufferGenMessage = calloc(5, 1);
+	if (type == 1) {
+		//attaquer
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "1");
+		message = strcat(message, bufferGenMessage);
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+
+		if(strlen(nomDest) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomDest)); 
+		message = strcat(message, bufferGenMessage);
+
+		//concat
+		message = strncat(message, "0", 1);
+		message = strncat(message, "003", 3);
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, nomDest, strlen(nomDest));
+		message = strncat(message, "005", 3);
+		message = strncat(message, "\0", 1);
+		//decode(message);
+	}else if (type == 2) {
+		//soigner
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "2");
+		message = strcat(message, bufferGenMessage);
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+
+		if(strlen(nomDest) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomDest)); 
+		message = strcat(message, bufferGenMessage);
+
+		//concat
+		message = strncat(message, "1", 1);
+		message = strncat(message, "003", 3);
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, nomDest, strlen(nomDest));
+		message = strncat(message, "005", 3);
+		message = strncat(message, "\0", 1);
+		//decode(message);
+	}else if (type == 6) {	
+		//deconnexion
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "6");
+		message = strcat(message, bufferGenMessage);	
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+		
+		strcpy (bufferGenMessage, "00");//LongueurSource
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "0");//TDM
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "000");//LongueurDonnees
+		message = strcat(message, bufferGenMessage);
+
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, "\0", 1);
+		//decode(message);
+	}else if (type == 7){
+		//Demande noms des clients
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "7");
+		message = strcat(message, bufferGenMessage);	
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+		
+		strcpy (bufferGenMessage, "00");//LongueurSource
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "0");//TDM
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "000");//LongueurDonnees
+		message = strcat(message, bufferGenMessage);
+
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, "\0", 1);
+		//decode(message);
+	}
+	free(bufferGenMessage);
+	return message;
+}
+
 
 
 char* genMessage(char* nomSource, char* nomDest, int type){
-	//requete liste client
+
 	char* message;
 	char* bufferGenMessage = calloc(5, 1);
 	if (type == 1) {
@@ -390,7 +501,7 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 		message = strncat(message, nomDest, strlen(nomDest));
 		message = strncat(message, "005", 3);
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}else if (type == 2) {
 		//soigner
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
@@ -418,10 +529,10 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 		message = strncat(message, nomDest, strlen(nomDest));
 		message = strncat(message, "005", 3);
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}else if (type == 6) {	
 		//deconnexion
-		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomSource) + 3 + 1, 1);
 		strcpy (bufferGenMessage, "6");
 		message = strcat(message, bufferGenMessage);	
 		//longueur des noms
@@ -441,7 +552,7 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 
 		message = strncat(message, nomSource, strlen(nomSource));
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}else if (type == 7){
 		//boucle calculant la somme des noms 
 		int i;
@@ -464,13 +575,13 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 			message = strcat(message, joueurs[i]->nomJoueur);
 		}
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}else if (type == 8) {
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomSource)+10, 1);
 		strcpy (bufferGenMessage, "8");
 
 		message = strcat(message, bufferGenMessage);
-		
+
 		strcpy (bufferGenMessage, "00");//LongueurSource
 		message = strcat(message, bufferGenMessage);
 
@@ -488,7 +599,7 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 
 		message = strncat(message, nomSource, strlen(nomSource));
 		message = strncat(message, "\0", 1);
-		decode(message);
+		//decode(message);
 	}
 	free(bufferGenMessage);
 	return message;
@@ -535,14 +646,39 @@ int main(){
 	m8 = "806000000ELDRAD";
 	decode(m8);
 
-
+	char* message;
 	printf("------------------------------------------------\n genMessage\n");
 	printf("------------------------------------------------\n\n");
-	genMessage("ELDRAD", "BOB", 1);
-	genMessage("ELDRAD", "BOB", 2);
-	genMessage("ELDRAD", "BOB", 6);
-	genMessage("ELDRAD", "BOB", 7);
-	genMessage("ELDRAD", "BOB", 8);
+	
+	message = genMessage("ELDRAD", "BOB", 1);
+	decode(message);
+	
+	message = genMessage("ELDRAD", "BOB", 2);
+	decode(message);
+	
+	message = genMessage("ELDRAD", "BOB", 6);
+	decode(message);
+	
+	message = genMessage("ELDRAD", "BOB", 7);
+	decode(message);
+	
+	message = genMessage("ELDRAD", "BOB", 8);
+	decode(message);
+
+	printf("------------------------------------------------\n genMessageClient\n");
+	printf("------------------------------------------------\n\n");
+	
+	message = genMessageClient("ELDRAD", "BOB", 1);
+	decode(message);
+	
+	message = genMessageClient("ELDRAD", "BOB", 2);
+	decode(message);
+	
+	message = genMessageClient("ELDRAD", "BOB", 6);
+	decode(message);
+	
+	message = genMessageClient("ELDRAD", "BOB", 7);
+	decode(message);
 /*
 	free(m1);
 	free(m2);
