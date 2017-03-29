@@ -286,60 +286,14 @@ void decode(char* mesg) {
 	printf("\n");
 }
 
-void choixMessage(int socket_descriptor, char* nomSource, int* returnTypeMessage, char* returnNomDest){
-	char* message;
-	int choixCible;
-	int nbClient;
-	int longueurNomClient[nbClient];
-	int offset = 0;
-	int i;
-	char* reponse = calloc(TAILLE_BUFFER, 1);
-
-
-
-	message = genMessage(nomSource, "", 7);
-	sendMessage(socket_descriptor, message);
-
-	//WAIT FOR SERVER'S REPONSE
-	//DISPLAY SERVER'S REPONSE
-	//PUT SERVER'S REPONSE IN A REPONSE
-	//PUT EVERY NAME IN CLIENT[]
-	//DO nbClient = nbClient + 1; AFTER EACH ADD IN CLIENT[]
-
-	nbClient = getNbClient(reponse);					//1 | 2 NBCLIENT
-	for(i = 0; i < nbClient; ++i){
-		offset = 2 * i + 3;
-		longueurNomClient[i] = getLongueurNomClient(reponse, offset);
-		//printf("longueurNomClient a la position : %i -- %i\n", i, longueurNomClient[i]);
-		//sommeLongueur = sommeLongueur + longueurNomClient[i];
-	}
-	offset = offset + 2;
-	char * nomsClients[nbClient];
-	for(i = 0; i < nbClient; ++i){
-		nomsClients[i] = calloc(longueurNomClient[i]+1, 1);
-		strncpy(nomsClients[i], &reponse[offset], longueurNomClient[i]);
-		offset = longueurNomClient[i] + offset;
-	}
-
-	printf("Appuyer sur :\n\t1 pour attaquer\n\t2 pour soigner\n\t 6 pour quitter\n");
-	scanf("%d", returnTypeMessage);
-	printf("Choix de la cible :\n");
-	for(i = 0; i < nbClient; ++i){
-		printf("\t %i %s", i + 1, nomsClients[i]);
-	}
-	scanf("%d", &choixCible);
-	returnNomDest = nomsClients[i - 1];
-}
-
 void sendMessage(int socket_descriptor, char* mesg) {
 	if ((write(socket_descriptor, mesg, strlen(mesg)+1)) < 0) {
 		perror("erreur : impossible d'ecrire le message destine au serveur.\n");
 		exit(1);
 	}
 	printf("message envoye au serveur. \n");
+	printf("%s\n", mesg);
 }
-
-
 
 char* genMessage(char* nomSource, char* nomDest, int type){
 
@@ -485,7 +439,41 @@ void transmissionDonneesinitiale(int socket_descriptor, char* nomClient ) {
 	printf("envoi initial terminé\n");
 }
 
-
+char* makeClientMessage(char* nomClient) {
+	int returnTypeMessage;
+	char* message = calloc(256, 1);
+	char* cible = calloc(13, 1);
+	int invalidInput = 1;
+	while(invalidInput == 1) {
+		printf("Que faites-vous ?\n1 pour attaquer\n2 pour soigner\n3 pour quitter\n");
+		scanf("%s", returnTypeMessage);
+		int tmpInt;
+		if (scanf ("%d",&tmpInt) == 1 ){
+			returnTypeMessage = 1;
+			invalidInput = 0;
+		}
+		else if(scanf ("%d",&tmpInt) == 2) {
+			returnTypeMessage = 2;
+			invalidInput = 0;
+		}
+		else if (scanf ("%d",&tmpInt) == 3) {
+			returnTypeMessage = 3;
+			invalidInput = 0;
+		}
+		else{
+			printf("Saisie invalide.");
+		}
+	}
+	if (returnTypeMessage == 3) {
+		message = genMessage(nomClient, nomClient, 6);
+	}
+	else {
+		printf("Quelle cible?\n");
+		scanf("%s", cible);
+		message = genMessage(nomClient, cible, returnTypeMessage);
+	}
+	return message;
+}
 
 
 
@@ -648,13 +636,13 @@ int main(int argc, char **argv) {
 				}
 				//message de c'est ton tour
 				else if (typMess == 8)  {
-					printf("%s\n", "TEST AFFICHAGE BUFFER");
+					/*printf("%s\n", "TEST AFFICHAGE BUFFER");
 					printf("%s\n", buffer);
 					printf("%s\n", "FIN TEST AFFICHAGE BUFFER");
 					printf("%s\n", "TEST AFFICHAGE NOM");
 					printf("%s\n", getCibleNom(buffer, 9));
 					printf("%s\n", nomClient);
-					printf("%s\n", "FIN TEST AFFICHAGE NOM");
+					printf("%s\n", "FIN TEST AFFICHAGE NOM");*/
 					if ((!strcmp(getCibleNom(buffer, 9), nomClient))) {
 						printf("C'est mon tour\n");
 						estMonTour = 1;
@@ -662,6 +650,10 @@ int main(int argc, char **argv) {
 					else {
 						printf("%s\n", "C'est pas mon tour!\n");
 					}
+				}
+				//message de liste de clients
+				else if (typMess == 7) {
+					printf("%s\n", "liste des clients reçus\n");
 				}
 				else {
 					printf("Message reçu \n");
@@ -678,6 +670,9 @@ int main(int argc, char **argv) {
 		//CEST MON TOUR
 		else {
 			char* mesg = malloc(sizeof(char) * TAILLE_BUFFER);
+			mesg = makeClientMessage(nomClient);
+			printf("message envoyé\n");
+			printf("%s\n", mesg);
 			sendMessage(socket_descriptor, mesg);
 			estMonTour = 0;
 		}

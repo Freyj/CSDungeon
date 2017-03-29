@@ -751,7 +751,7 @@ int main(int argc, char** argv) {
 							}
 							//on ignore les joueurs morts
 						}
-						printf("DID NOT READ\n");
+						//printf("DID NOT READ\n");
 					}
 					//le joueur existe pas on passe au suivant (pas opti)
 				}
