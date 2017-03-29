@@ -231,40 +231,43 @@ int joueursMorts() {
 /*-------------------PAS FINI---------------------------*/
 char* action(char* buffer, Joueur* joueurCourant) {
 	char* res;
+	res = calloc(256,1);
 	int type = getTypeMessage(buffer);
 	//un client se co
 	if (type == 0) {
-		res = calloc(10, 1);
-		res = "000000000";
-		printf("Une connexion en cours de jeu, souci.\n");
+		//envoi de message generique?
+		//res = genMessage()
+		printf("Une connexion en cours.\n");
 	}
 	//un client attaque
 	else if (type == 1) {
+		res = genMessage(joueurCourant->nomJoueur, getCibleNom(buffer, 9), 1);
+		attaque(joueurCourant, getCibleNom(buffer, 9));
 		printf("%s\n", "attaque du client" );
 	}
-	//un client se soigne
+	//un client soigne
 	else if (type == 2) {
+		res = genMessage(joueurCourant->nomJoueur, getCibleNom(buffer, 9), 2);
+		soin(joueurCourant, getCibleNom(buffer, 9));
 		printf("%s\n", "soin du client" );
 	}
 	//un client deco
 	else if (type == 6) {
 		joueurCourant->pv = 0;
+		//envoi de message de deco
 		res = genMessage(joueurCourant->nomJoueur, "ALL", 6);
 		printf("%s\n", "une deconnexion");
 	}
 	//on demande la liste des clients
 	else if (type == 7){
 		printf("%s\n", "une liste de clients demandée");
-
+		res = genMessage(joueurCourant->nomJoueur, "ALL", 7);
 	}
 	else {
 		res = calloc(10, 1);
 		res = "000000000";
 		printf("Zut, y a une erreur.\n");
 	}
-
-
-
 	return res;
 }
 
@@ -567,11 +570,27 @@ void decode(char* mesg) {
 
 
 
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+void tourEnnemi(){
+
+}
 
 
 
 
 
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+void attaque(Joueur* joueurCourant, char* nomCible) {
+
+}
+
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+void soin(Joueur* joueurCourant, char* nomCible){
+	
+}
 
 
 

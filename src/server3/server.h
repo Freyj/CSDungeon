@@ -160,3 +160,6 @@ char* getCibleNom(char* mesg, int longueurEntete);
 int getTypeDeModification(char* mesg);
 char* genMessage(char* nomSource, char* nomDest, int type);
 void decode(char* mesg);
+void attaque(Joueur* joueurCourant, char* nomCible);
+void soin(Joueur* joueurCourant, char* nomCible);
+void tourEnnemi();
