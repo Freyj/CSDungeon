@@ -215,10 +215,45 @@ int joueursMorts() {
 
 /*------------------------------------------------------*/
 /*-------------------PAS FINI---------------------------*/
-char* action(char* buffer) {
-	char* res = "90000000000";
+char* action(char* buffer, Joueur* joueurCourant) {
+	char* res;
+	int type = getTypeMessage(buffer);
+	//un client se co
+	if (type == 0) {
+		res = calloc(10, 1);
+		res = "000000000";
+		printf("Une connexion en cours de jeu, souci.\n");
+	}
+	//un client attaque
+	else if (type == 1) {
+		printf("%s\n", "attaque du client" );
+	}
+	//un client se soigne
+	else if (type == 2) {
+		printf("%s\n", "soin du client" );
+	}
+	//un client deco
+	else if (type == 6) {
+		joueurCourant->pv = 0;
+		res = genMessage(joueurCourant->nomJoueur, "ALL", 6, 0);
+		printf("%s\n", "une deconnexion");
+	}
+	//on demande la liste des clients
+	else if (type == 7){
+		printf("%s\n", "une liste de clients demandée");
+
+	}
+	else {
+		res = calloc(10, 1);
+		res = "000000000";
+		printf("Zut, y a une erreur.\n");
+	}
+
+
+
 	return res;
 }
+
 
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
@@ -234,17 +269,18 @@ char* genMessage(char* nomSource, char* nomDest, int type, int tDm){
 			longueur = longueur + strlen((char*) joueurs[i]->nomJoueur);
 		}
 		printf("Taille\n");
-		printf("%i\n", TAILLE_BUFFER);
-		message = calloc(TAILLE_BUFFER, 1);
-		message = strncat(message, "5\0", 2);
+		printf("%i\n", longueur);
+		message = calloc(longueur, 1);
+		message = strcpy(message, "5 \0");
 		for (i = 0; i < nbJoueursCourants; ++i) {
 			printf("i : %i\n", i);
 			if(strlen(joueurs[i]->nomJoueur) > 9){
 				printf("%s\n", message);
+				char* nom = strcat(joueurs[i]->nomJoueur, "\0");
 				message = strcat(message, "bob\0");
 				printf("%s\n", message);
 
-				message = strcat(message, (char*) strlen("bob192874547454454"));
+				message = strcat(message, (char*) strlen("10"));
 			}else{
 				message = strncat(message, "0\0", 1);
 				message = strncat(message, (char*) strlen((char*) joueurs[i]->nomJoueur), 1);
@@ -349,6 +385,10 @@ char* genMessage(char* nomSource, char* nomDest, int type, int tDm){
 }
 
 
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+
+
 
 
 
@@ -440,13 +480,9 @@ int main(int argc, char** argv) {
 			else if (new_socket_descriptor == 0) {
 				printf("%s\n", "AHHHHHHHHHHHHHHHHHHH");
 			}
-			//SEGFAULT OH GOD WHY
-			//printf("%s\n", "AHHHHHHHHHHHHHHHHHHH");
-			//printf("%d\n", new_socket_descriptor);
-			//printf("%s\n", strerror(errno));
 
 			//initialise le joueur ET incrémente le nbJoueursCourant. (ajoute dans le tableau)
-			//how to get a name ?
+			//init de nom pourri pour test
 			initJoueur(new_socket_descriptor, "Bobby123456789", adresse_client_courant);
 		}
 
@@ -472,7 +508,8 @@ int main(int argc, char** argv) {
 						//generation du message, de type 8 (token), 0 parce qu'on s'en fiche
 						//50 = max size (large)
 						char* msg = calloc(TAILLE_BUFFER, sizeof(char));
-						msg = genMessage(joueurs[iterJoueur]->nomJoueur,joueurs[iterJoueur]->nomJoueur, 7, 0);
+						msg = genMessage(joueurs[iterJoueur]->nomJoueur,joueurs[iterJoueur]->nomJoueur, 8, 0);
+						printf("(%s\n", "BOUH");
 						printf("%s\n", msg);
 						envoiTous(msg);
 						longueur = read(joueurs[iterJoueur]->sock_desc, buffer, TAILLE_BUFFER-1);
@@ -511,7 +548,7 @@ int main(int argc, char** argv) {
 									joueurs[iterJoueur]->bufferAction = buffer;
 									char* bufferRenvoi;
 									//on traite l'action liée au buffer
-									bufferRenvoi = action(buffer);
+									bufferRenvoi = action(buffer, joueurs[iterJoueur]);
 									//on broadcast à tout le monde l'info
 									envoiTous(bufferRenvoi);
 								}

@@ -146,7 +146,7 @@ int joueursMorts();
  * @brief fait une action en fonction du buffer
  * @return char* pour le message
  */
-char* action(char* buffer);
+char* action(char* buffer, Joueur* joueur);
 
 int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos);
 int getSourceLongueur(char* mesg);
