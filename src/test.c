@@ -361,7 +361,31 @@ char* genMessageClient(char* nomSource, char* nomDest, int type){
 
 	char* message;
 	char* bufferGenMessage = calloc(5, 1);
-	if (type == 1) {
+	if (type == 0){
+		//connexion
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "0");
+		message = strcat(message, bufferGenMessage);
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+		
+		strcpy (bufferGenMessage, "00");//LongueurSource
+		message = strcat(message, bufferGenMessage);
+		
+		strcpy (bufferGenMessage, "0");//TDM
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "000");//LongueurDonnees
+		message = strcat(message, bufferGenMessage);
+
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, "\0", 1);
+		
+	}else if (type == 1) {
 		//attaquer
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
 		strcpy (bufferGenMessage, "1");
@@ -667,6 +691,9 @@ int main(){
 
 	printf("------------------------------------------------\n genMessageClient\n");
 	printf("------------------------------------------------\n\n");
+	
+	message = genMessageClient("ELDRAD", "BOB", 0);
+	decode(message);
 	
 	message = genMessageClient("ELDRAD", "BOB", 1);
 	decode(message);
