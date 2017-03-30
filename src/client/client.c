@@ -749,7 +749,7 @@ int main(int argc, char **argv) {
 				break;
 			}
 		}
-		//CEST MON TOUR
+		//C'EST MON TOUR
 		else {
 			char* mesg = malloc(sizeof(char) * TAILLE_BUFFER);
 			mesg = makeClientMessage(nomClient);

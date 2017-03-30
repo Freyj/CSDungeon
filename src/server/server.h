@@ -148,18 +148,111 @@ int joueursMorts();
  */
 char* action(char* buffer, Joueur* joueur);
 
+/**
+ * Fonction auxiliaire pour récupérer les infos du message
+ * (utilisée dans les fonctions suivantes)
+ */
 int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos);
+
+/** 
+ * Fonction renvoyant la longueur du nom de la source du message
+ * @param msg : le char* du message
+ * @return int  la longueur du nom de la source
+ */
 int getSourceLongueur(char* mesg);
+
+/** 
+ * Fonction renvoyant la longueur du nom de la cible du message
+ * @param msg : le char* du message
+ * @return int  la longueur du nom de la cible
+ */
 int getCibleLongueur(char* mesg);
+
+/** 
+ * Fonction renvoyant la longueur des données
+ * @param msg : le char* du message
+ * @return int  la longueur des données
+ */
 int getDonneesLongueur(char* mesg);
+
+/** 
+ * Fonction renvoyant les points de vie
+ * @param msg : le char* du message
+ * @return int  les points de vie
+ */
 int getPointsDeVie(char* mesg, int offset);
+
+/** 
+ * Fonction renvoyant le nombre de clients
+ * @param msg : le char* du message
+ * @return int  le nombre de clients
+ */
 int getNbClient(char* mesg);
+
+/** 
+ * Fonction renvoyant la longueur du nom client
+ * @param msg : le char* du message
+ * @param offset : taille entete + longueur nom de la source + longueur nom de la cible
+ * @return int  la longueur du nom client
+ */
 int getLongueurNomClient(char* mesg, int offset);
+
+/** 
+ * Fonction renvoyant le nom de la source du message
+ * @param msg : le char* du message
+ * @param longueurEntete : int pour la longueur de l'en-tête du message
+ * @return char* le nom de la source
+ */
 char* getSourceNom(char* mesg, int longueurEntete);
+
+/** 
+ * Fonction renvoyant le nom de la cible du message
+ * @param msg : le char* du message
+ * @param longueurEntete : int pour la longueur de l'en-tête du message
+ * @return char* le nom de la cible
+ */
 char* getCibleNom(char* mesg, int longueurEntete);
+
+/** 
+ * Fonction renvoyant le type de modification
+ * @param msg : le char* du message
+ * @return int  le type de modification
+ */
 int getTypeDeModification(char* mesg);
+
+/** 
+ * génère un message pour les clients
+ * @param nomSource le char* du nom de la source
+ * @param nomDest le char* du nom de la cible
+ * @param type le type du message
+ * @return char* le message généré
+ */
 char* genMessage(char* nomSource, char* nomDest, int type);
+
+/**
+ * Fonction qui décode le message et en 
+ * fait l'affichage pour le serveur 
+ * @param mesg : le char* du message
+ */
 void decode(char* mesg);
+
+/**
+ * Fonction qui gère l'attaque d'un joueur
+ * @param joueurCourant : le joueur qui attaque
+ * @param nomCible : la cible
+ */
 void attaque(Joueur* joueurCourant, char* nomCible);
+
+/**
+ * Fonction qui gère le soin d'un joueur
+ * @param joueurCourant : le joueur qui soigne
+ * @param nomCible : la cible
+ */
 void soin(Joueur* joueurCourant, char* nomCible);
+
+/**
+ * Fonction qui vérifie qu'un joueur existe
+ * @param nom : le nom du joueur à tester
+ * @return le joueur existant ou NULL si il n'existe pas
+ */
 Joueur* joueurExists(char* nom);
