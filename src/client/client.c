@@ -39,7 +39,7 @@ char* getCibleNom(char* mesg, int longueurEntete);
 void sendMessage(int socket_descriptor, char* mesg);
 
 /*------------------------------------------------------------------------------*/
-
+/* Structures pour les connexions */
 typedef struct sockaddr 
 sockaddr;
 
@@ -51,6 +51,8 @@ hostent;
 
 typedef struct servent 
 servent;
+
+//variable pour check si c'est le tour ou pas
 //0 = c'est pas mon tour
 static int estMonTour = 0;
 
@@ -62,7 +64,11 @@ typedef struct infoclient {
 }infoclient;
 
 
-
+/**
+ * Fonction auxiliaire pour transformer un char en int
+ * @param char le char à changer en int
+ * @return  int correspondant
+ */
 int digit_to_int(char d){
 	char str[2];
 	str[0] = d;
@@ -70,6 +76,10 @@ int digit_to_int(char d){
 	return (int) strtol(str, NULL, 10);
 }
 
+/**
+ * Fonction auxiliaire pour récupérer les infos du message
+ * (utilisée dans les fonctions suivantes)
+ */
 int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos){
 	int dataToReturn;
 	dataToReturn = 0;
@@ -86,6 +96,12 @@ int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos)
 	return dataToReturn;
 }
 
+/** 
+ * Fonction renvoyant le nom de la source du message
+ * @param msg : le char* du message
+ * @param longueurEntete : int pour la longueur de l'en-tête du message
+ * @return char* le nom de la source
+ */
 char* getSourceNom(char* mesg, int longueurEntete) {
 	int nomSourceLongueur = getSourceLongueur(mesg);
 	char* nomSource = calloc(nomSourceLongueur+1, 1);
@@ -93,6 +109,12 @@ char* getSourceNom(char* mesg, int longueurEntete) {
 	return nomSource;
 }
 
+/** 
+ * Fonction renvoyant le nom de la cible du message
+ * @param msg : le char* du message
+ * @param longueurEntete : int pour la longueur de l'en-tête du message
+ * @return char* le nom de la cible
+ */
 char* getCibleNom(char* mesg, int longueurEntete) {
 	int nomCibleLongueur = getCibleLongueur(mesg);
 	char* nomCible = calloc(nomCibleLongueur+1, 1);
@@ -100,38 +122,84 @@ char* getCibleNom(char* mesg, int longueurEntete) {
 	return nomCible;
 }
 
+/** 
+ * Fonction renvoyant la longueur du nom de la source du message
+ * @param msg : le char* du message
+ * @return int  la longueur du nom de la source
+ */
 int getSourceLongueur(char* mesg){
 	return getDonnees(mesg, 2, 1, 2, 0);
 }
 
+/** 
+ * Fonction renvoyant la longueur du nom de la cible du message
+ * @param msg : le char* du message
+ * @return int  la longueur du nom de la cible
+ */
 int getCibleLongueur(char* mesg){
 	return getDonnees(mesg, 2, 3, 4, 0);
 }
 
+/** 
+ * Fonction renvoyant la longueur des données
+ * @param msg : le char* du message
+ * @return int  la longueur des données
+ */
 int getDonneesLongueur(char* mesg){
 	return getDonnees(mesg, 3, 6, 7, 8);
 }
 
+/** 
+ * Fonction renvoyant les points de vie
+ * @param msg : le char* du message
+ * @return int  les points de vie
+ */
 int getPointsDeVie(char* mesg, int offset){
 	return getDonnees(mesg, 3, offset, offset + 1, offset + 2);
 }
 
+/** 
+ * Fonction renvoyant le nombre de clients
+ * @param msg : le char* du message
+ * @return int  le nombre de clients
+ */
 int getNbClient(char* mesg){
 	return getDonnees(mesg, 2, 1, 2, 0);
 }
-//offset : taille entete + longueur nom de la source + longueur nom de la cible
+
+/** 
+ * Fonction renvoyant la longueur du nom client
+ * @param msg : le char* du message
+ * @param offset : taille entete + longueur nom de la source + longueur nom de la cible
+ * @return int  la longueur du nom client
+ */
 int getLongueurNomClient(char* mesg, int offset){
 	return getDonnees(mesg, 2, offset, offset + 1, 0);
 }
 
+/** 
+ * Fonction renvoyant le type de modification
+ * @param msg : le char* du message
+ * @return int  le type de modification
+ */
 int getTypeDeModification(char* mesg){
 	return getDonnees(mesg, 1, 5, 0, 0);
 }
 
+/** 
+ * Fonction renvoyant le type de message
+ * @param msg : le char* du message
+ * @return int  le type de message
+ */
 int getTypeMessage(char* mesg){
 	return getDonnees(mesg, 1, 0, 0, 0);
 }
 
+/**
+ * Fonction qui décode le message et en 
+ * fait l'affichage pour le client 
+ * @param mesg : le char* du message
+ */
 void decode(char* mesg) {
 	int nomSourceLongueur;
 	int nomCibleLongueur;
@@ -286,6 +354,11 @@ void decode(char* mesg) {
 	printf("\n");
 }
 
+/**
+ * Fonction qui envoie un message
+ * @param socket_descriptor : l'int représentant le socket
+ * @param mesg : le char* du message
+ */
 void sendMessage(int socket_descriptor, char* mesg) {
 	if ((write(socket_descriptor, mesg, strlen(mesg)+1)) < 0) {
 		perror("erreur : impossible d'ecrire le message destine au serveur.\n");
@@ -298,6 +371,10 @@ void sendMessage(int socket_descriptor, char* mesg) {
 /** 
  * génère un message pour le serveur
  * pour une déco (type 6) le nomDest doit être ""
+ * @param nomSource le char* du nom de la source
+ * @param nomDest le char* du nom de la cible
+ * @param type le type du message
+ * @return char* le message généré
  */
 char* genMessage(char* nomSource, char* nomDest, int type){
 
@@ -434,6 +511,11 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 	return message;
 }
 
+/**
+ * Fait la première transmission d'info avec le nom du client
+ * @param socket_descriptor : le socket du client
+ * @param nomClient : le char* du nom du client
+ */
 void transmissionDonneesinitiale(int socket_descriptor, char* nomClient ) {
 	printf("envoi initial\n");
 	printf("%s\n", nomClient);
@@ -443,6 +525,10 @@ void transmissionDonneesinitiale(int socket_descriptor, char* nomClient ) {
 	printf("envoi initial terminé\n");
 }
 
+/**
+ * Gere la demande d'input du client pour savoir ce qu'il fait
+ * @param nomClient : le char* du nom du client
+ */
 char* makeClientMessage(char* nomClient) {
 	int returnTypeMessage;
 	char* message = calloc(256, 1);
@@ -678,5 +764,5 @@ int main(int argc, char **argv) {
 	printf("\nfin de la reception.\n");
 	close(socket_descriptor);
 	printf("connexion avec le serveur fermee, fin du programme.\n");
-	exit(0);  
+	exit(0);
 }
