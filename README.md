@@ -25,3 +25,5 @@ gcc ./client/client.c -o csClient -Wall -lpthread
 ./csClient [adresse-serveur] [port] [pseudo]
 
 
+### Test
+test.c permet d'avoir un aperçu des différents types de messages générés par notre protocole d'échange.
