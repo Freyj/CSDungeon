@@ -446,18 +446,10 @@ char* makeClientMessage(char* nomClient) {
 	int invalidInput = 1;
 	while(invalidInput == 1) {
 		printf("Que faites-vous ?\n1 pour attaquer\n2 pour soigner\n3 pour quitter\n");
-		scanf("%s", returnTypeMessage);
 		int tmpInt;
 		if (scanf ("%d",&tmpInt) == 1 ){
-			returnTypeMessage = 1;
-			invalidInput = 0;
-		}
-		else if(scanf ("%d",&tmpInt) == 2) {
-			returnTypeMessage = 2;
-			invalidInput = 0;
-		}
-		else if (scanf ("%d",&tmpInt) == 3) {
-			returnTypeMessage = 3;
+			printf("1\n");
+			returnTypeMessage = tmpInt;
 			invalidInput = 0;
 		}
 		else{

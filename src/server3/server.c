@@ -304,10 +304,12 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 		message = strncat(message, "003", 3);
 		message = strncat(message, nomSource, strlen(nomSource));
 		message = strncat(message, nomDest, strlen(nomDest));
+		//valeur de dégats codée en dur à 5 pv
 		message = strncat(message, "005", 3);
 		message = strncat(message, "\0", 1);
 		decode(message);
-	}else if (type == 2) {
+	}
+	else if (type == 2) {
 		//soigner
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
 		strcpy (bufferGenMessage, "3");
@@ -332,10 +334,12 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 		message = strncat(message, "003", 3);
 		message = strncat(message, nomSource, strlen(nomSource));
 		message = strncat(message, nomDest, strlen(nomDest));
+		//valeur de soin codée en dur à 5 pv
 		message = strncat(message, "005", 3);
 		message = strncat(message, "\0", 1);
 		decode(message);
-	}else if (type == 6) {	
+	}
+	else if (type == 6) {	
 		//deconnexion
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
 		strcpy (bufferGenMessage, "6");
@@ -358,7 +362,8 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 		message = strncat(message, nomSource, strlen(nomSource));
 		message = strncat(message, "\0", 1);
 		decode(message);
-	}else if (type == 7){
+	}
+	else if (type == 7){
 		//boucle calculant la somme des noms 
 		int i;
 		int longueur = 0;
@@ -381,7 +386,8 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 		}
 		message = strncat(message, "\0", 1);
 		decode(message);
-	}else if (type == 8) {
+	}
+	else if (type == 8) {
 		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomSource)+10, 1);
 		strcpy (bufferGenMessage, "8");
 
@@ -568,32 +574,71 @@ void decode(char* mesg) {
 	printf("\n");
 }
 
-
-
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-void tourEnnemi(){
-
-}
-
-
-
-
-
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
+/**
+ * enlève 5 pv à un joueur ou un ennemi
+ */
 void attaque(Joueur* joueurCourant, char* nomCible) {
-
+	if (joueurExists(nomCible) != NULL) {
+		Joueur* cibleJoueur = joueurExists(nomCible);
+		cibleJoueur->pv -= 5;
+		printf("Attaque réussie\n");
+	}
+	else if (!strcmp(nomCible, "ennemi")){
+		int degats = joueurCourant->degats;
+		if (ennemisElimines(jeu->ennemis) == 0) {
+			if (&jeu->ennemis->pvEn1 > 0 ) {
+				jeu->ennemis->pvEn1 = jeu->ennemis->pvEn1 - degats;
+				runLog("ennemi 1 tape", 50);
+			}
+			else if(&jeu->ennemis->pvEn2 > 0 ) {
+				jeu->ennemis->pvEn2 = jeu->ennemis->pvEn2 - degats;
+				runLog("ennemi 2 tape", 50);
+			}
+			else if(& jeu->ennemis->pvEn3 > 0 ) {
+				jeu->ennemis->pvEn3 = jeu->ennemis->pvEn3 - degats;
+				runLog("ennemi 3 tape", 50);
+			}
+	}
+	}
+	else {
+		printf("Attaque échouée\n");
+	}
 }
 
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
+/** 
+ * donne 5 pv au joueur s'il existe
+ */
 void soin(Joueur* joueurCourant, char* nomCible){
-	
+	if (joueurExists(nomCible) != NULL) {
+		Joueur* cibleJoueur = joueurExists(nomCible);
+		cibleJoueur->pv += 5;
+		printf("Soin réussi\n");
+	}
+	else {
+		printf("Fail soin\n");
+	}
 }
 
 
-
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/**
+ * renvoie le joueur s'il existe un joueur avec ce nom
+ */
+Joueur* joueurExists(char* nom) {
+	int i;
+	for (i = 0; i < nbJoueursCourants; ++i) {
+		if (!strcmp(nom, joueurs[i]->nomJoueur)) {
+			printf("Joueur existant : %s\n", nom);
+			return joueurs[i];
+		}
+	}
+	return NULL;
+}
 
 
 

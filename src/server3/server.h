@@ -162,4 +162,4 @@ char* genMessage(char* nomSource, char* nomDest, int type);
 void decode(char* mesg);
 void attaque(Joueur* joueurCourant, char* nomCible);
 void soin(Joueur* joueurCourant, char* nomCible);
-void tourEnnemi();
+Joueur* joueurExists(char* nom);
