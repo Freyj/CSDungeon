@@ -354,6 +354,12 @@ char* genMessage(char* nomSource, char* nomDest, int type){
 		message = calloc(TAILLE_BUFFER, 1);
 		strcpy (bufferGenMessage, "5");
 		message = strcat(message, bufferGenMessage);
+		if(nbJoueursCourants <=  9){
+            strcpy (bufferGenMessage, "0");
+            message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%i",  nbJoueursCourants); 
+		message = strcat(message, bufferGenMessage);
 		for (i = 0; i < nbJoueursCourants; ++i) {
 			if(strlen(joueurs[i]->nomJoueur) <= 9){
 				strcpy (bufferGenMessage, "0");
@@ -727,6 +733,11 @@ int main(int argc, char** argv) {
 			}
 		}
 
+		//pour un envoi de la liste des clients, on s'en fiche de la source/cible, en plus c'est un broadcast
+		//le serveur renvoie la liste des clients
+		envoiTous(genMessage("", "", 7));
+		//sleep pour eviter des receptions ratés
+		sleep(1);
 		int tourCpt;
 		for (tourCpt = 0; tourCpt < MAX_TOURS ; ++tourCpt) {
 			printf("%d\n", tourCpt);
