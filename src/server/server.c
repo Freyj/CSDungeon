@@ -162,9 +162,9 @@ void initServer (int port) {
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
 Ennemis* genEnnemis(Ennemis* en) {
-	en->pvEn1 = 200;
-	en->pvEn2 = 200;
-	en->pvEn3 = 200;
+	en->pvEn1 = 10;
+	en->pvEn2 = 10;
+	en->pvEn3 = 10;
 	return en;
 }
 
@@ -817,6 +817,7 @@ int main(int argc, char** argv) {
 						}
 						//printf("DID NOT READ\n");
 					}
+					sleep(1);
 					//le joueur existe pas on passe au suivant (pas opti)
 				}
 			}

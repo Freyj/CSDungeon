@@ -589,11 +589,11 @@ int main(int argc, char **argv) {
 
 		if(estMonTour == 0){
 			//je lis
+			memset(buffer, '0', TAILLE_BUFFER);
 			if((longueur = read(socket_descriptor, buffer, TAILLE_BUFFER-1)) > 0) {
 				printf("reponse du serveur : \n");
 				buffer[longueur] = '\0';
 				printf("%s\n", buffer);
-				//write(1,buffer,longueur+1);
 				int typMess = getTypeMessage(buffer);
 				printf("%d\n", typMess);
 				//si on a gagné ou perdu
@@ -621,13 +621,13 @@ int main(int argc, char **argv) {
 				//message de deco
 				else if (typMess == 6){
 					if ((!strcmp(getCibleNom(buffer, 9), nomClient)) || (!strcmp(getSourceNom(buffer, 9), nomClient))) {
-						printf("testCMP DECO\n");
+						//printf("testCMP DECO\n");
 						deconnexion = 1;
 						printf("Deconnexion\n");
 						//break;
 					}
 					else {
-						printf("testCMP DECO SOMEONE ELSE\n");
+						printf("Deco d'un joueur autre\n");
 					}
 				}
 				//message de c'est ton tour
