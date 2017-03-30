@@ -295,6 +295,10 @@ void sendMessage(int socket_descriptor, char* mesg) {
 	printf("%s\n", mesg);
 }
 
+/** 
+ * génère un message pour le serveur
+ * pour une déco (type 6) le nomDest doit être ""
+ */
 char* genMessage(char* nomSource, char* nomDest, int type){
 
 	char* message;
@@ -448,7 +452,7 @@ char* makeClientMessage(char* nomClient) {
 		printf("Que faites-vous ?\n1 pour attaquer\n2 pour soigner\n3 pour quitter\n");
 		int tmpInt;
 		if (scanf ("%d",&tmpInt) == 1 ){
-			printf("1\n");
+			printf("%d\n", tmpInt);
 			returnTypeMessage = tmpInt;
 			invalidInput = 0;
 		}
@@ -457,7 +461,7 @@ char* makeClientMessage(char* nomClient) {
 		}
 	}
 	if (returnTypeMessage == 3) {
-		message = genMessage(nomClient, nomClient, 6);
+		message = genMessage(nomClient, "", 6);
 	}
 	else {
 		printf("Quelle cible?\n");
@@ -618,13 +622,13 @@ int main(int argc, char **argv) {
 				else if (typMess == 6){
 					if ((!strcmp(getCibleNom(buffer, 9), nomClient)) || (!strcmp(getSourceNom(buffer, 9), nomClient))) {
 						printf("testCMP DECO\n");
+						deconnexion = 1;
+						printf("Deconnexion\n");
+						//break;
 					}
 					else {
-						printf("testCMP DECO ELSE\n");
+						printf("testCMP DECO SOMEONE ELSE\n");
 					}
-					printf("Deconnexion\n");
-					deconnexion = 1;
-					break;
 				}
 				//message de c'est ton tour
 				else if (typMess == 8)  {
