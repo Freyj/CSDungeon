@@ -10,7 +10,7 @@ Les actions sont : attaquer [cible], soigner [cible], quitter.
 
 Les cibles sont soit "ennemi" pour l'ennemi du jeu, soit les noms des autres clients.
 
-Pour le moment, les clients ne reçoivent pas la liste des autres clients, et il reste des soucis de détection de fin de jeu.
+Les clients reçoivent la liste des joueurs au début de la partie
 
 Si un client déconnecte, le token passe au joueur suivant.
 
