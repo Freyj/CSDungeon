@@ -96,19 +96,7 @@ void runLog(char* erreur, int threadNb) {
 	exit(1);
 	}
 	char* time = heure();
-	char* thread = "Thread";
-	if (threadNb == 0){
-		thread = "[*Serveur*][main Thread]:";
-	}
-	else if(threadNb == 1){
-		thread = "[*Serveur*] [*Thread 1*]:";
-	}
-	else if(threadNb == 2){
-		thread = "[*Serveur*] [*Thread 2*]:";
-	}
-	else if(threadNb == 3){
-		thread = "[*Serveur*] [*Thread 3*]:";
-	}
+	char* thread ="[*Serveur*] : \0";
 	fprintf(file, "%s %s : %s \n", thread, time, erreur);
 	fclose(file);
 	free(time);
@@ -122,22 +110,7 @@ void runLogInt(int erreur, int threadNb) {
 	exit(1);
 	}
 	char* time = heure();
-	char* thread = "Thread";
-	if (threadNb == 0){
-		thread = "[**Serveur**][main Thread]:";
-	}
-	else if(threadNb == 1){
-		thread = "[**Serveur**] [*Thread 1*]:";
-	}
-	else if(threadNb == 2){
-		thread = "[**Serveur**] [*Thread 2*]:";
-	}
-	else if(threadNb == 3){
-		thread = "[**Serveur**] [*Thread 3*]:";
-	}
-	else {
-		thread = "[**Serveur**][*No thread*]:";
-	}
+	char* thread ="[*Serveur*] : \0";
 	fprintf(file, "%s %s : %d \n", thread, time, erreur);
 	fclose(file);
 	free(time);
@@ -161,8 +134,11 @@ void initServer (int port) {
 
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
+/*
+ * @bug : les ennemis 2 et 3 ne sont pas pris en compte
+ */
 Ennemis* genEnnemis(Ennemis* en) {
-	en->pvEn1 = 10;
+	en->pvEn1 = 100;
 	en->pvEn2 = 10;
 	en->pvEn3 = 10;
 	return en;
@@ -170,13 +146,18 @@ Ennemis* genEnnemis(Ennemis* en) {
 
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
+/*
+ * @bug : les ennemis 2 et 3 ne sont pas pris en compte
+ */
 int ennemisElimines(Ennemis* en) {
 	runLog("Check d'ennemis elimines", 50);
 	runLogInt(en->pvEn1, 50);
-	if ((en->pvEn1 < 1) && (en->pvEn2 < 1) && (en->pvEn3 < 1)) {
+	if ((en->pvEn1 < 1) /*&& (en->pvEn2 < 1) && (en->pvEn3 < 1)*/) {
 		return 1;
+		runLog("ennemis elimines", 50);
 	}
 	return 0;
+	runLog("ennemis non elimines", 50);
 }
 
 /*------------------------------------------------------*/
@@ -228,7 +209,7 @@ int joueursMorts() {
 }
 
 /*------------------------------------------------------*/
-/*-------------------PAS FINI---------------------------*/
+/*------------------------------------------------------*/
 char* action(char* buffer, Joueur* joueurCourant) {
 	char* res;
 	res = calloc(256,1);
@@ -600,7 +581,7 @@ void attaque(Joueur* joueurCourant, char* nomCible) {
 				jeu->ennemis->pvEn3 = jeu->ennemis->pvEn3 - degats;
 				runLog("ennemi 3 tape", 50);
 			}
-	}
+		}
 	}
 	else {
 		printf("Attaque échouée\n");
@@ -719,7 +700,7 @@ int main(int argc, char** argv) {
 				exit(1);
 			}
 			else if (new_socket_descriptor == 0) {
-				printf("%s\n", "AHHHHHHHHHHHHHHHHHHH");
+				//printf("%s\n", "AHHHHHHHHHHHHHHHHHHH");
 			}
 			int longueur;
 			char buffer[TAILLE_BUFFER];
@@ -728,7 +709,7 @@ int main(int argc, char** argv) {
 			//runLogInt(errno,1);
 			//printf("%s\n", strerror(errno));
 			if (longueur < 0) {
-				printf("ERROR DE READ\n");
+				printf("erreur de lecture\n");
 			}
 			else if (longueur == 0) {
 				printf("Disconnect du client\n");		
@@ -758,6 +739,7 @@ int main(int argc, char** argv) {
 					//on vérifie que le joueur existe
 					if (joueurs[iterJoueur]) {
 						printf("joueur %d\n", iterJoueur);
+						printf("%s\n", joueurs[iterJoueur]->nomJoueur);
 						int longueur = 0;
 						char buffer[TAILLE_BUFFER];
 						//on écoute
@@ -769,31 +751,31 @@ int main(int argc, char** argv) {
 						//50 = max size (large)
 						char* msg = calloc(TAILLE_BUFFER, sizeof(char));
 						msg = genMessage(joueurs[iterJoueur]->nomJoueur,joueurs[iterJoueur]->nomJoueur, 8);
-						printf("(%s\n", "BOUH");
+						//printf("(%s\n", "BOUH");
 						printf("%s\n", msg);
 						envoiTous(msg);
 						longueur = read(joueurs[iterJoueur]->sock_desc, buffer, TAILLE_BUFFER-1);
 						//runLogInt(errno,1);
 						//printf("%s\n", strerror(errno));
 						if (longueur < 0) {
-							printf("ERROR DE READ\n");
+							printf("erreur de lecture\n");
 							joueurs[iterJoueur] = NULL;
 						}
 						else if (longueur == 0) {
-							printf("CLOSE DE SOCKET\n");
+							printf("fermeture d'un socket\n");
 							joueurs[iterJoueur] = NULL;							
 						}
 						if (longueur > 0) {
 							//printf("%s\n", buffer);
 							//si le joueur n'est pas mort
-							printf("RECEIVED A THING\n");
+							//printf("a reçu un message\n");
 							if (joueurs[iterJoueur]->pv > 0) {
-								printf("JOUEUR ALIVE\n");
+								//printf("joueur vivant\n");
 								printf("PV du joueur %i\n", joueurs[iterJoueur]->pv);
 								//si les ennemis sont morts, on envoie un message de fin
 								//TODO: plus tard, on enverra un truc pour redémarrer?
 								if (ennemisElimines(jeu->ennemis) == 1) {
-									printf("VICTOIRE\n");
+									//printf("VICTOIRE\n");
 									//message de fin (le 9 envoie fin de jeu, le cinquième caractere determine vitoire
 									//ou défaite (1 ou 0))
 									char* bufferFinJeu = "900001";
@@ -802,7 +784,7 @@ int main(int argc, char** argv) {
 									return 0;
 								}
 								else {
-									printf("SOMETHING HAPPENED\n");
+									//printf("Il se passe quelque chose\n");
 									buffer[longueur] = '\0';
 									runLog(buffer, 0);
 									joueurs[iterJoueur]->bufferAction = buffer;

@@ -6,11 +6,6 @@
 */
 /*----------------------------------------------
 Serveur a lancer avant le client
-
-si y a pas moyen de mettre un booléen dans le client genre "jai_la_parole"
-dans le client pardon je veux dire dans le thread client du serveur
-
-
 ------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>

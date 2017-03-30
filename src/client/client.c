@@ -551,6 +551,7 @@ char* makeClientMessage(char* nomClient) {
 	}
 	else {
 		printf("Quelle cible?\n");
+		printf("Pour taper/soigner un joueur, entrez son nom, pour taper un monstre, tapez ennemi\n");
 		scanf("%s", cible);
 		message = genMessage(nomClient, cible, returnTypeMessage);
 	}
