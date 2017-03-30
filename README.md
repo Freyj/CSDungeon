@@ -20,8 +20,8 @@ gcc ./client/client.c -o csClient -Wall -lpthread
 
 ## use 
 ### use server
-./csServer <port>
+./csServer [port]
 ### use client
-./csClient <adresse-serveur> <port> <pseudo>
+./csClient [adresse-serveur] [port] [pseudo]
 
 
