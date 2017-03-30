@@ -1,468 +1,13 @@
 /**
  * @Authors : Charlene Servantie, Charles-Eric Begaudeau
  * @Date : 2017
- * @Version : 0.2
+ * @Version : 0.3
  * @brief : 
 */
 /*----------------------------------------------
 Serveur a lancer avant le client
 ------------------------------------------------*/
 #include "server.h"
-
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief Fonction qui donne l'heure pour les logs
- * @details renvoie l'heure en hh:mm:ss
- * @return un char* decrivant l'heure
- */
-char* heure() {
-	time_t temps = time(NULL);
-	struct tm structTps = *localtime(&temps);
-	char *heureString = malloc(20 * sizeof(char));
-	sprintf(heureString, "%d:%d:%d", structTps.tm_hour, structTps.tm_min, structTps.tm_sec);
-	return heureString;
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief Fonction pour logger les erreurs dans un fichier
- * @param erreur le message en char*
- * @param threadNb le nb du thread pour debug 
- */
-void runLog(char* erreur, int threadNb) {
-	FILE* file = fopen("logServeur.log", "a");
-	if (file == NULL) {
-	printf("Erreur d'ouverture de fichier de log!\n");
-	exit(1);
-	}
-	char* time = heure();
-	char* thread = "Thread";
-	if (threadNb == 0){
-		thread = "[*Serveur*][main Thread]:";
-	}
-	else if(threadNb == 1){
-		thread = "[*Serveur*] [*Thread 1*]:";
-	}
-	else if(threadNb == 2){
-		thread = "[*Serveur*] [*Thread 2*]:";
-	}
-	else if(threadNb == 3){
-		thread = "[*Serveur*] [*Thread 3*]:";
-	}
-	fprintf(file, "%s %s : %s \n", thread, time, erreur);
-	fclose(file);
-	free(time);
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief Fonction pour logger les erreurs dans un fichier
- * fonctionne pour les int
- * @param erreur le message en int
- * @param threadNb le nb du thread pour debug 
- */
-void runLogInt(int erreur, int threadNb) {
-	FILE* file = fopen("logServeur.log", "a");
-	if (file == NULL) {
-	printf("Erreur d'ouverture de fichier de log!\n");
-	exit(1);
-	}
-	char* time = heure();
-	char* thread = "Thread";
-	if (threadNb == 0){
-		thread = "[**Serveur**][main Thread]:";
-	}
-	else if(threadNb == 1){
-		thread = "[**Serveur**] [*Thread 1*]:";
-	}
-	else if(threadNb == 2){
-		thread = "[**Serveur**] [*Thread 2*]:";
-	}
-	else if(threadNb == 3){
-		thread = "[**Serveur**] [*Thread 3*]:";
-	}
-	else {
-		thread = "[**Serveur**][*No thread*]:";
-	}
-	fprintf(file, "%s %s : %d \n", thread, time, erreur);
-	fclose(file);
-	free(time);
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief fonction de renvoi
- */
-void renvoi(int sock) {
-	char buffer[256];
-	int longueur;
-	if ((longueur = read(sock, buffer, sizeof(buffer))) <= 0) {
-		return;
-	}
-	runLog(buffer, 50);
-	printf("message lu: %s \n", buffer);
-
-	memset(&buffer, 0, 1);
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief Fonction generant un groupe d'ennemis
- * @details 3 ennemis a 20 pv, pas encore de reglages
- */
-Ennemis* genEnnemis(Ennemis* en) {
-	en->pvEn1 = 200;
-	en->pvEn2 = 200;
-	en->pvEn3 = 200;
-	return en;
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief fonction verifiant qu'un groupe n'est pas mort
- */
-int ennemisElimines(Ennemis* en) {
-	runLog("Check d'ennemis elimines", 50);
-	runLogInt(en->pvEn1, 50);
-	if ((en->pvEn1 < 1) && (en->pvEn2 < 1) && (en->pvEn3 < 1)) {
-		return 1;
-	}
-	return 0;
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief fonction lançant une attaque sur un groupe
- */
-void attaque(int degats) {
-	if (ennemisElimines(jeu->ennemis) == 0) {
-		if (&jeu->ennemis->pvEn1 > 0 ) {
-			jeu->ennemis->pvEn1 = jeu->ennemis->pvEn1 - degats;
-			runLog("ennemi 1 tape", 50);
-		}
-		else if(&jeu->ennemis->pvEn2 > 0 ) {
-			jeu->ennemis->pvEn2 = jeu->ennemis->pvEn2 - degats;
-			runLog("ennemi 2 tape", 50);
-		}
-		else if(& jeu->ennemis->pvEn3 > 0 ) {
-			jeu->ennemis->pvEn3 = jeu->ennemis->pvEn3 - degats;
-			runLog("ennemi 3 tape", 50);
-		}
-	}
-	runLog("ennemis tues", 50);
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief fonction qui soigne
- * TODO: do (de 2)
- */
-void soigner() {
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/** @brief fonction qui enleve un joueur et decremente le total
- *
- */
-void retraitJoueur(Joueur* joueur){
-	int i;
-	for (i = 0; i < MAX_JOUEURS; i++) {
-		if (joueurs[i]) {
-			joueurs[i] = NULL;
-			break;
-		}
-    }
-  nbJoueursCourants--;
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/** 
- * Fonction qui gere le tour
- * @TODO: purger et faire des fonctions
- */ 
-void* tourDeJeu(void* arg) {
-	while(jeu->nbTour < 20) {
-		//on verrouille le jeu pour pas qu'un client le modifie entre temps
-		//pthread_mutex_lock(&jeu->mutex_Jeu);
-			if (joueurs[joueurTour]) {
-				//le joueur existe, on verrouille pour pouvoir faire quelque chose
-				//pthread_mutex_lock(&joueurs[joueurTour]->mutex_Joueur);
-				runLog("Joueur recu", 15);
-				decode(joueurs[joueurTour]->bufferAction);
-				char* message;
-				if(joueurs[joueurTour]->bufferAction[0] == '7') {
-					message = genMessage(jeu->port, jeu->nomServeur, "serveur", "rien", 7, 0);
-				}
-				else if (joueurs[joueurTour]->bufferAction[0] == '1') {
-					int nomSourceLongueur;
-					int nomCibleLongueur;
-					int donneesLongueur;
-					char* nomCible;
-					//attaque
-					nomSourceLongueur = getSourceLongueur(joueurs[joueurTour]->bufferAction);	//1 | 2
-					nomCibleLongueur = getCibleLongueur(joueurs[joueurTour]->bufferAction);		//3 | 4
-					//typeDeModification inutile					//5
-					donneesLongueur = getDonneesLongueur(joueurs[joueurTour]->bufferAction);
-					nomCible = calloc(nomCibleLongueur+1, 1);
-					strncpy(nomCible, &joueurs[joueurTour]->bufferAction[9 + nomSourceLongueur], nomCibleLongueur);
-					message = genMessage(jeu->port, jeu->nomServeur, joueurs[joueurTour]->nomJoueur, nomCible, 1, 0);
-
-				}
-				else if (joueurs[joueurTour]->bufferAction[0] == '2') {
-					int nomSourceLongueur;
-					int nomCibleLongueur;
-					int donneesLongueur;
-					char* nomCible;
-					//attaque
-					nomSourceLongueur = getSourceLongueur(joueurs[joueurTour]->bufferAction);	//1 | 2
-					nomCibleLongueur = getCibleLongueur(joueurs[joueurTour]->bufferAction);		//3 | 4
-					//typeDeModification inutile					//5
-					donneesLongueur = getDonneesLongueur(joueurs[joueurTour]->bufferAction);
-					nomCible = calloc(nomCibleLongueur+1, 1);
-					strncpy(nomCible, &joueurs[joueurTour]->bufferAction[9 + nomSourceLongueur], nomCibleLongueur);
-					message = genMessage(jeu->port, jeu->nomServeur, joueurs[joueurTour]->nomJoueur, nomCible, 2, 1);
-				}
-				envoiTous(message);
-				//pthread_mutex_unlock(&joueurs[joueurTour]->mutex_Joueur);
-			}
-			else {
-				//si on a pas de joueur, on incrémente l'id (jusqu'à 16, après on le remet à )
-				if (joueurTour <16) {
-					joueurTour++;
-				}
-				else {
-					joueurTour = 0;
-					++jeu->nbTour;
-				}
-			}
-		//pthread_mutex_unlock(&jeu->mutex_Jeu);
-	}
-	return NULL;
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief Fonction reagissant a l'action d'un client
- */ 
-void action(int sock, Ennemis* en) {
-	char buffer[256];
-	int longueur;
-	if ((longueur = read(sock, buffer, sizeof(buffer))) <= 0) {
-		return;
-	}
-	//on previent le client qu'il a fait quelque chose
-	//char* reponse;
-
-	// if (strcmp(buffer, "Attaque") == 0) {
-	// 	//attaque(en, 2);
-	// 	reponse = "Vous avez attaque";
-	// 	write(sock,reponse,strlen(reponse)+1);	
-	// }
-	// if (strcmp(buffer, "Soigner") == 0) {
-	// 	soigner();
-	// 	reponse = "Vous vous etes soignes";
-	// 	write(sock,reponse,strlen(reponse)+1);	
-	// }
-	//0 est un int, et equivalent a \0
-	memset(&buffer, 0, 1);
-}
-/**
- *	@brief initialisation du serveur
- */ 
-void initServer(int port) {
-	//comme on modifie le jeu
-	runLog("debut d'initialisation", 0);
-	//theoriquement, le mutex n'est pas necessaire ici, mais au cas où
-	//init du mutex 
-	//pthread_mutex_lock(&jeu->mutex_Jeu);
-	//initialisation des adversaires
-	Ennemis* groupeEnnemis = malloc(sizeof(Ennemis));
-	groupeEnnemis = genEnnemis(groupeEnnemis);
-	jeu->ennemis = groupeEnnemis;
-	runLog("Pvs de l'ennemi 1 pour test", 0);
-	runLogInt(jeu->ennemis->pvEn1, 0);
-	//compteur de tours
-	jeu->nbTour = 0;
-	jeu->port = port;
-	jeu->nomServeur = malloc(sizeof(char) * TAILLE_MAX_NOM);
-	gethostname(jeu->nomServeur,TAILLE_MAX_NOM);
-
-	//pthread_mutex_unlock(&jeu->mutex_Jeu);
-	runLog("initialisation terminee", 0);
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief envoie un message a tous les joueurs
- * @details log les envois
- * @param message le char* du message
- */
-void envoiTous(char* message){
-	int i;
-	for (i = 0; i < MAX_JOUEURS; ++i) {
-		if (joueurs[i]) {
-			if (write(joueurs[i]->nouv_sock,message,strlen(message)+1) == -1) {
-				runLog("Erreur d'envoi pour le client", 50);
-				runLog(joueurs[i]->nomJoueur, 50);
-			}	
-			else {
-				runLog("Envoi correct pour le client", 50);
-				runLog(joueurs[i]->nomJoueur, 50);
-			}
-		}
-	}
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief gere les signaux 
- * @param nomSignal : l'int du signal (SIGINT)
- */
-void gestionSignal(int nomSignal){
-  int i;
-  runLog("Signal reçu:", 50);
-  runLog(strsignal(nomSignal), 50);
-  /* Warn the clients that the server is closing */
-  if (nomSignal == SIGINT || nomSignal == SIGTERM) {
-	for (i = 0; i < MAX_JOUEURS; i++) {
-		if (joueurs[i]) {
-			envoiTous("Deconnexion Serveur.");
-	  		close(joueurs[i]->nouv_sock);
-	  		free(joueurs[i]);
-		}
-	}
-    close(descripteurSocket);
-  }
-  exit(nomSignal);
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief fonction par client 
- */
-void* loopJoueur(void* arg){
-	Joueur* joueur = (Joueur*) arg;
-	ajoutJoueur(joueur);
-	char* buffer = malloc(sizeof(char) * TAILLE_BUFFER);
-	int longueur;
-	while ((longueur = read(joueur->nouv_sock, buffer, TAILLE_BUFFER)) > 0){
-		/* évite les soucis de buffer */
-		buffer[longueur] = '\0';
-		printf("Connexion reçue.\n");
-		runLog(buffer, 50);
-		//on modifie le buffer donc on demande le mutex
-		//pthread_mutex_lock(&joueur->mutex_Joueur);
-		joueur->bufferAction = buffer;
-		tourDeJeu(NULL);
-		//pthread_mutex_unlock(&joueur->mutex_Joueur);
-	}
-	 /* Client quit/disconnected */
-  	/* Notify the clients */
-  	runLog("Le joueur a quitte : ", 2);
-  	runLog(joueur->nomJoueur, 2);
-  	close(joueur->nouv_sock);
-  	retraitJoueur(joueur);
-  	free(buffer);
-  	
-  	//pthread_detach(pthread_self());
-	return NULL;
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/** 
- * @brief fonction qui ajoute un joueur et incremente le total
- */
-void ajoutJoueur(Joueur* joueur) {
-	int i;
-	for (i = 0; i < MAX_JOUEURS; i++) {
-		if (!(&joueurs[i])) {
-			joueurs[i] = joueur;
-			break;
-		}
-		}
-		nbJoueursCourants++;
-}
-/*------------------------------------------------------*/
-/*------------------------------------------------------*/
-/**
- * @brief  Initialisation du joueur
- */
-Joueur* initJoueur(sockaddr_in adresse_locale, int nouv_sock) {
-	Joueur* joueur = (Joueur *)calloc((sizeof(Joueur)), 1);
-	joueur->nomJoueur = "N00b";
-	joueur->adresse_locale = adresse_locale;
-	joueur->nouv_sock = nouv_sock;
-	joueur->joueurId = joueurIdCompteur++;
-	joueur->bufferAction = malloc(sizeof(char) * TAILLE_BUFFER);
-	InfoJoueur inf;
-	inf.pv = 100;
-	inf.pvMax = 100;
-	inf.exp = 0;
-	/* La force aléatoire */
-	//inf.degats = (rand() % 20) + 1;
-	inf.degats = 5;
-	runLog("degats du joueur : 5", 50);
-	//runLogInt(inf.degats, 50);
-	inf.nbTues = 0;
-	joueur->info = inf;
-	//init du mutex
-	//pthread_mutex_init(&joueur->mutex_Joueur, NULL);
-	runLog("Joueur cree", 50);
-	return joueur;
-}
-
-void sendMessage(int port, char* host, char* mesg) {
-	int socket_descriptor; 		/* descripteur de socket */
-	int longueur; 				/* longueur d'un buffer utilisé */
-
-	sockaddr_in adresse_locale; /* adresse de socket local */
-
-	hostent* ptr_host;  		/* info sur une machine hote */
-	servent* ptr_service;  		/* info sur service */
-
-	char buffer[256];
-	if ((ptr_host = gethostbyname(host)) == NULL) {
-		perror("erreur : impossible de trouver le client a partir de son adresse.");
-		exit(1);
-	}
-	/* copie caractere par caractere des infos de ptr_host vers adresse_locale */
-	bcopy((char*)ptr_host->h_addr, (char*)&adresse_locale.sin_addr, ptr_host->h_length);
-	adresse_locale.sin_family = AF_INET; /* ou ptr_host->h_addrtype; */
-
-	//adresse_locale.sin_port = htons(7332); // why port 7332 ?
-	adresse_locale.sin_port = htons(port);
-
-	printf("numero de port pour la connexion au client : %d \n", ntohs(adresse_locale.sin_port));
-
-	/* creation de la socket */
-	if ((socket_descriptor = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		perror("erreur : impossible de creer la socket de connexion avec le client.");
-		exit(1);
-	}
-
-	/* tentative de connexion au serveur dont les infos sont dans adresse_locale */
-	if ((connect(socket_descriptor, (sockaddr*)(&adresse_locale), sizeof(adresse_locale))) < 0) {
-		perror("erreur : impossible de se connecter au client.");
-		exit(1);
-	}
-	if ((write(socket_descriptor, mesg, strlen(mesg))) < 0) {
-		perror("erreur : impossible d'ecrire le message destine au client.");
-		exit(1);
-	}
-	printf("message envoye au client. \n");
-	//write(1,buffer,longueur);
-	//return (longueur = read(socket_descriptor, buffer, sizeof(buffer)));
-	while((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
-		printf("reponse du client : \n");
-		write(1,buffer,longueur);
-    }
-    printf("\n");
-    close(socket_descriptor);
-}
-
-
-
 
 int digit_to_int(char d){
 	char str[2];
@@ -474,7 +19,9 @@ int digit_to_int(char d){
 int getDonnees(char* mesg, int nbData, int data1Pos, int data2Pos, int data3Pos){
 	int dataToReturn;
 	dataToReturn = 0;
-	if(nbData == 2){
+	if(nbData == 1){
+		dataToReturn = dataToReturn + digit_to_int(mesg[data1Pos]);
+	}else if(nbData == 2){
 		dataToReturn = dataToReturn + 10 * digit_to_int(mesg[data1Pos]);
 		dataToReturn = dataToReturn + digit_to_int(mesg[data2Pos]);
 	}else{
@@ -509,6 +56,369 @@ int getLongueurNomClient(char* mesg, int offset){
 	return getDonnees(mesg, 2, offset, offset + 1, 0);
 }
 
+int getTypeDeModification(char* mesg){
+	return getDonnees(mesg, 1, 5, 0, 0);
+}
+
+int getTypeMessage(char* mesg){
+	return getDonnees(mesg, 1, 0, 0, 0);
+}
+
+char* getSourceNom(char* mesg, int longueurEntete) {
+	int nomSourceLongueur = getSourceLongueur(mesg);
+	char* nomSource = calloc(nomSourceLongueur+1, 1);
+	strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
+	return nomSource;
+}
+
+char* getCibleNom(char* mesg, int longueurEntete) {
+	int nomCibleLongueur = getCibleLongueur(mesg);
+	char* nomCible = calloc(nomCibleLongueur+1, 1);
+	strncpy(nomCible, &mesg[longueurEntete + getSourceLongueur(mesg)], nomCibleLongueur);
+	return nomCible;
+}
+
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+char* heure() {
+	time_t temps = time(NULL);
+	struct tm structTps = *localtime(&temps);
+	char *heureString = malloc(20 * sizeof(char));
+	sprintf(heureString, "%d:%d:%d", structTps.tm_hour, structTps.tm_min, structTps.tm_sec);
+	return heureString;
+}
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+void runLog(char* erreur, int threadNb) {
+	FILE* file = fopen("logServeur.log", "a");
+	if (file == NULL) {
+	printf("Erreur d'ouverture de fichier de log!\n");
+	exit(1);
+	}
+	char* time = heure();
+	char* thread = "Thread";
+	if (threadNb == 0){
+		thread = "[*Serveur*][main Thread]:";
+	}
+	else if(threadNb == 1){
+		thread = "[*Serveur*] [*Thread 1*]:";
+	}
+	else if(threadNb == 2){
+		thread = "[*Serveur*] [*Thread 2*]:";
+	}
+	else if(threadNb == 3){
+		thread = "[*Serveur*] [*Thread 3*]:";
+	}
+	fprintf(file, "%s %s : %s \n", thread, time, erreur);
+	fclose(file);
+	free(time);
+}
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+void runLogInt(int erreur, int threadNb) {
+	FILE* file = fopen("logServeur.log", "a");
+	if (file == NULL) {
+	printf("Erreur d'ouverture de fichier de log!\n");
+	exit(1);
+	}
+	char* time = heure();
+	char* thread = "Thread";
+	if (threadNb == 0){
+		thread = "[**Serveur**][main Thread]:";
+	}
+	else if(threadNb == 1){
+		thread = "[**Serveur**] [*Thread 1*]:";
+	}
+	else if(threadNb == 2){
+		thread = "[**Serveur**] [*Thread 2*]:";
+	}
+	else if(threadNb == 3){
+		thread = "[**Serveur**] [*Thread 3*]:";
+	}
+	else {
+		thread = "[**Serveur**][*No thread*]:";
+	}
+	fprintf(file, "%s %s : %d \n", thread, time, erreur);
+	fclose(file);
+	free(time);
+}
+
+void initServer (int port) {
+	runLog("debut d'initialisation", 0);
+	//initialisation des adversaires
+	Ennemis* groupeEnnemis = malloc(sizeof(Ennemis));
+	groupeEnnemis = genEnnemis(groupeEnnemis);
+	jeu->ennemis = groupeEnnemis;
+	runLog("Pvs de l'ennemi 1 pour test", 0);
+	runLogInt(jeu->ennemis->pvEn1, 0);
+	//compteur de tours
+	jeu->nbTour = 0;
+	jeu->port = port;
+	jeu->nomServeur = malloc(sizeof(char) * TAILLE_MAX_NOM);
+	gethostname(jeu->nomServeur,TAILLE_MAX_NOM);
+	runLog("initialisation terminee", 0);
+}
+
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+Ennemis* genEnnemis(Ennemis* en) {
+	en->pvEn1 = 200;
+	en->pvEn2 = 200;
+	en->pvEn3 = 200;
+	return en;
+}
+
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+int ennemisElimines(Ennemis* en) {
+	runLog("Check d'ennemis elimines", 50);
+	runLogInt(en->pvEn1, 50);
+	if ((en->pvEn1 < 1) && (en->pvEn2 < 1) && (en->pvEn3 < 1)) {
+		return 1;
+	}
+	return 0;
+}
+
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+void initJoueur(int sock, char* nom, sockaddr_in adresse_client_courant) {
+		//printf("%d\n", sock);
+		//printf("%s\n", strerror(errno));
+		Joueur* joueur = malloc(sizeof(Joueur));
+		joueur->adresse_client =adresse_client_courant;
+		joueur->nomJoueur = nom;
+		joueur->sock_desc = sock;
+		joueur->pv = 100;
+		joueur->degats = 5;
+		joueur->joueurId = nbJoueursCourants;
+		joueurs[nbJoueursCourants] = joueur;
+		nbJoueursCourants++;
+}
+
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+void envoiTous(char* message){
+	int i;
+	for (i = 0; i < MAX_JOUEURS; ++i) {
+		if (joueurs[i]) {
+			if (write(joueurs[i]->sock_desc,message,strlen(message)+1) == -1) {
+				runLog("Erreur d'envoi pour le client", 50);
+				runLog(joueurs[i]->nomJoueur, 50);
+			}	
+			else {
+				runLog("Envoi correct pour le client", 50);
+				runLog(joueurs[i]->nomJoueur, 50);
+			}
+		}
+	}
+}
+
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+int joueursMorts() {
+	int i;
+	for (i = 0; i < MAX_JOUEURS; ++i) {
+		if (joueurs[i]) {
+			if (joueurs[i]->pv > 0) {
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+/*------------------------------------------------------*/
+/*-------------------PAS FINI---------------------------*/
+char* action(char* buffer, Joueur* joueurCourant) {
+	char* res;
+	res = calloc(256,1);
+	int type = getTypeMessage(buffer);
+	//un client se co
+	if (type == 0) {
+		//envoi de message generique?
+		//res = genMessage()
+		printf("Une connexion en cours.\n");
+	}
+	//un client attaque
+	else if (type == 1) {
+		res = genMessage(joueurCourant->nomJoueur, getCibleNom(buffer, 9), 1);
+		attaque(joueurCourant, getCibleNom(buffer, 9));
+		printf("%s\n", "attaque du client" );
+	}
+	//un client soigne
+	else if (type == 2) {
+		res = genMessage(joueurCourant->nomJoueur, getCibleNom(buffer, 9), 2);
+		soin(joueurCourant, getCibleNom(buffer, 9));
+		printf("%s\n", "soin du client" );
+	}
+	//un client deco
+	else if (type == 6) {
+		joueurCourant->pv = 0;
+		//envoi de message de deco
+		res = genMessage(joueurCourant->nomJoueur, "ALL", 6);
+		printf("%s\n", "une deconnexion");
+	}
+	//on demande la liste des clients
+	else if (type == 7){
+		printf("%s\n", "une liste de clients demandée");
+		res = genMessage(joueurCourant->nomJoueur, "ALL", 7);
+	}
+	else {
+		res = calloc(10, 1);
+		res = "000000000";
+		printf("Zut, y a une erreur.\n");
+	}
+	return res;
+}
+
+
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+
+char* genMessage(char* nomSource, char* nomDest, int type){
+	//requete liste client
+	char* message;
+	char* bufferGenMessage = calloc(5, 1);
+	if (type == 1) {
+		//attaquer
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "3");
+		message = strcat(message, bufferGenMessage);
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+
+		if(strlen(nomDest) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomDest)); 
+		message = strcat(message, bufferGenMessage);
+
+		//concat
+		message = strncat(message, "0", 1);
+		message = strncat(message, "003", 3);
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, nomDest, strlen(nomDest));
+		//valeur de dégats codée en dur à 5 pv
+		message = strncat(message, "005", 3);
+		message = strncat(message, "\0", 1);
+		decode(message);
+	}
+	else if (type == 2) {
+		//soigner
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "3");
+		message = strcat(message, bufferGenMessage);
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+
+		if(strlen(nomDest) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomDest)); 
+		message = strcat(message, bufferGenMessage);
+
+		//concat
+		message = strncat(message, "1", 1);
+		message = strncat(message, "003", 3);
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, nomDest, strlen(nomDest));
+		//valeur de soin codée en dur à 5 pv
+		message = strncat(message, "005", 3);
+		message = strncat(message, "\0", 1);
+		decode(message);
+	}
+	else if (type == 6) {	
+		//deconnexion
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3+1, 1);
+		strcpy (bufferGenMessage, "6");
+		message = strcat(message, bufferGenMessage);	
+		//longueur des noms
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+		
+		strcpy (bufferGenMessage, "00");//LongueurSource
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "0");//TDM
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "000");//LongueurDonnees
+		message = strcat(message, bufferGenMessage);
+
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, "\0", 1);
+		decode(message);
+	}
+	else if (type == 7){
+		//boucle calculant la somme des noms 
+		int i;
+		int longueur = 0;
+		for (i = 0; i < nbJoueursCourants; ++i) {
+			longueur = longueur + strlen((char*) joueurs[i]->nomJoueur);
+		}
+		message = calloc(TAILLE_BUFFER, 1);
+		strcpy (bufferGenMessage, "5");
+		message = strcat(message, bufferGenMessage);
+		for (i = 0; i < nbJoueursCourants; ++i) {
+			if(strlen(joueurs[i]->nomJoueur) <= 9){
+				strcpy (bufferGenMessage, "0");
+				message = strcat(message, bufferGenMessage);
+			}
+			sprintf(bufferGenMessage, "%zu", strlen(joueurs[i]->nomJoueur) ); 
+			message = strcat(message, bufferGenMessage);
+		}
+		for (i = 0;i < nbJoueursCourants; ++i) {
+			message = strcat(message, joueurs[i]->nomJoueur);
+		}
+		message = strncat(message, "\0", 1);
+		decode(message);
+	}
+	else if (type == 8) {
+		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomSource)+10, 1);
+		strcpy (bufferGenMessage, "8");
+
+		message = strcat(message, bufferGenMessage);
+		
+		strcpy (bufferGenMessage, "00");//LongueurSource
+		message = strcat(message, bufferGenMessage);
+
+		if(strlen(nomSource) <= 9){
+			strcpy (bufferGenMessage, "0");
+			message = strcat(message, bufferGenMessage);
+		}
+		sprintf(bufferGenMessage, "%zu", strlen(nomSource)); 
+		message = strcat(message, bufferGenMessage);
+
+		strcpy (bufferGenMessage, "0");//TDM
+		message = strcat(message, bufferGenMessage);
+		strcpy (bufferGenMessage, "000");//LongueurDonnees
+		message = strcat(message, bufferGenMessage);
+
+		message = strncat(message, nomSource, strlen(nomSource));
+		message = strncat(message, "\0", 1);
+		decode(message);
+	}
+	free(bufferGenMessage);
+	return message;
+}
+
+
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
 
 void decode(char* mesg) {
 	int nomSourceLongueur;
@@ -519,6 +429,7 @@ void decode(char* mesg) {
 	char* nomSource;
 	char* nomCible;
 	int longueurEntete;
+	int estVictoire;
 	longueurEntete = 9;
 	printf("\t\t");
 	printf("%s", mesg);
@@ -570,7 +481,7 @@ void decode(char* mesg) {
 		//notification
 		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
 		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
-		typeDeModification = digit_to_int(mesg[5]);		//5
+		typeDeModification = getTypeDeModification(mesg);	//5
 		donneesLongueur = getDonneesLongueur(mesg);		//6 | 7 | 8
 		nomSource = calloc(nomSourceLongueur+1, 1);
 		nomCible = calloc(nomCibleLongueur+1, 1);
@@ -628,7 +539,7 @@ void decode(char* mesg) {
 		nomSourceLongueur = getSourceLongueur(mesg);	//1 | 2
 		nomSource = calloc(nomSourceLongueur+1, 1);
 		strncpy(nomSource, &mesg[longueurEntete], nomSourceLongueur);
-		printf("Type de message : DECONNEXION \nLongueurNomSource : %i\nNomSource : %s\n",
+		printf("Type de message : DECONNEXION \nLongueurNomSource : %i\nNomClientDeco : %s\n",
 		 nomSourceLongueur, nomSource);
 		free(nomSource);
 	}else if(mesg[0] == '7'){							//0
@@ -639,6 +550,23 @@ void decode(char* mesg) {
 		printf("Type de message : DEMANDE LISTE DES CLIENTS \nLongueurNomSource : %i\nNomSource : %s\n",
 		 nomSourceLongueur, nomSource);
 		free(nomSource);
+	}else if(mesg[0] == '8'){
+		//estMonTour = 1;
+		nomCibleLongueur = getCibleLongueur(mesg);		//3 | 4
+		//typeDeModification inutile					//5
+		//donneesLongueur = getDonneesLongueur(mesg);	//6 | 7 | 8
+		nomCible = calloc(nomCibleLongueur+1, 1);
+		strncpy(nomCible, &mesg[longueurEntete], nomCibleLongueur);
+		printf("Type de message : C'EST AU TOUR DE ! \n longueurNomClient : %i\nnomCible : %s\n",
+		 nomCibleLongueur, nomCible);
+		//cest a ton tour
+		//perror("erreur : type de message non definit pour le moment.");
+		//exit(1);
+	}else if(mesg[0] == '9'){
+		//Fin du Jeu
+		estVictoire = getTypeDeModification(mesg);
+		printf("Type de message : FIN DE JEU \n estVictoire : %i",
+		 estVictoire);
 	}else{
 		perror("erreur : message errone.");
 		exit(1);
@@ -646,211 +574,262 @@ void decode(char* mesg) {
 	printf("\n");
 }
 
-/** 
- * @brief génère les messages à envoyer
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/**
+ * enlève 5 pv à un joueur ou un ennemi
  */
-char * genMessage(int port, char* host, char* nomSource, char* nomDest, int type, int tDm){
-	//requete liste client
-	char* message;
-	if(type == 7){
-		//boucle calculant la somme des noms 
-		int i;
-		int longueur = 0;
-		for (i = 0; i < nbJoueursCourants; ++i) {
-			longueur = longueur + strlen((char*) joueurs[i]->nomJoueur);
-		}
-		message = calloc(1 + 2 * nbJoueursCourants + longueur, 1); 
-		message = "5";
-		for (i = 0; i < nbJoueursCourants; ++i) {
-			if(strlen(joueurs[i]->nomJoueur) > 9){
-				message = strcat(message, (char*) strlen((char*) joueurs[i]->nomJoueur));
-			}else{
-				message = strcat(message, "0");
-				message = strcat(message, (char*) strlen((char*) joueurs[i]->nomJoueur));
+void attaque(Joueur* joueurCourant, char* nomCible) {
+	if (joueurExists(nomCible) != NULL) {
+		Joueur* cibleJoueur = joueurExists(nomCible);
+		cibleJoueur->pv -= 5;
+		printf("Attaque réussie\n");
+	}
+	else if (!strcmp(nomCible, "ennemi")){
+		int degats = joueurCourant->degats;
+		if (ennemisElimines(jeu->ennemis) == 0) {
+			if (&jeu->ennemis->pvEn1 > 0 ) {
+				jeu->ennemis->pvEn1 = jeu->ennemis->pvEn1 - degats;
+				runLog("ennemi 1 tape", 50);
 			}
-		}
+			else if(&jeu->ennemis->pvEn2 > 0 ) {
+				jeu->ennemis->pvEn2 = jeu->ennemis->pvEn2 - degats;
+				runLog("ennemi 2 tape", 50);
+			}
+			else if(& jeu->ennemis->pvEn3 > 0 ) {
+				jeu->ennemis->pvEn3 = jeu->ennemis->pvEn3 - degats;
+				runLog("ennemi 3 tape", 50);
+			}
+	}
+	}
+	else {
+		printf("Attaque échouée\n");
+	}
+}
 
-		for (i = 0;i < nbJoueursCourants; ++i) {
-			message = strcat(message, joueurs[i]->nomJoueur);
-		}
+/*------------------------------------------------------*/
+/*------------------------------------------------------*/
+/** 
+ * donne 5 pv au joueur s'il existe
+ */
+void soin(Joueur* joueurCourant, char* nomCible){
+	if (joueurExists(nomCible) != NULL) {
+		Joueur* cibleJoueur = joueurExists(nomCible);
+		cibleJoueur->pv += 5;
+		printf("Soin réussi\n");
 	}
-	//deconnexion
-	else if (type == 6) {
-
+	else {
+		printf("Fail soin\n");
 	}
-	//attaquer
-	else if (type == 1) {
-		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3, 1);
-		message = "3";
-		//longueur des noms
-		if(strlen(nomDest) > 9){
-			message = strcat(message, (char*) strlen(nomDest));
-		}else{
-			message = strcat(message, "0");
-			message = strcat(message, (char*) strlen(nomDest));
-		}
-		if(strlen(nomSource) > 9){
-			message = strcat(message, (char*) strlen(nomSource));
-		}else{
-			message = strcat(message, "0");
-			message = strcat(message, (char*) strlen(nomSource));
-		}
-		//concat
-		message = strcat(message, "0");
-		message = strcat(message, "003");
-		message = strcat(message, nomSource);
-		message = strcat(message, nomDest);
-		message = strcat(message, "005");
-	}
-	//soigner
-	else if (type == 2) {
-		message = calloc(1 + 2 + 2 + 3 + 1 + strlen(nomDest) + strlen(nomSource) + 3, 1);
-		message = "3";
-		//longueur des noms
-		if(strlen(nomDest) > 9){
-			message = strcat(message, (char*) strlen(nomDest));
-		}else{
-			message = strcat(message, "0");
-			message = strcat(message, (char*) strlen(nomDest));
-		}
-		if(strlen(nomSource) > 9){
-			message = strcat(message, (char*) strlen(nomSource));
-		}else{
-			message = strcat(message, "0");
-			message = strcat(message, (char*) strlen(nomSource));
-		}
-		//concat
-		message = strcat(message, "1");
-		message = strcat(message, "003");
-		message = strcat(message, nomSource);
-		message = strcat(message, nomDest);
-		message = strcat(message, "005");
-	}
-	return message;
 }
 
 
 /*------------------------------------------------------*/
 /*------------------------------------------------------*/
-/* Fonction Principale */
+/**
+ * renvoie le joueur s'il existe un joueur avec ce nom
+ */
+Joueur* joueurExists(char* nom) {
+	int i;
+	for (i = 0; i < nbJoueursCourants; ++i) {
+		if (!strcmp(nom, joueurs[i]->nomJoueur)) {
+			printf("Joueur existant : %s\n", nom);
+			return joueurs[i];
+		}
+	}
+	return NULL;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int main(int argc, char** argv) {
-	if (argc == 2) {
-		//pour les calculs randoms de stats
-		srand(time(NULL));
-
-		//pthread_t threadJeu;
-		pthread_t threadEcoute;
-		//TODO:faudrait check les arguments d'entree
-		//gestion de signaux pour la terminaison du programme
-		signal(SIGTERM, gestionSignal);
-		signal(SIGINT, gestionSignal);
-		//on commence par initialiser le "jeu"
+	if (argc != 2) {
+		perror("La bonne commande est ./csServ [port]");
+	}
+	else {
 		jeu = malloc(sizeof(Jeu));
-		//initialisation du mutex
-		//pthread_mutex_init(&jeu->mutex_Jeu, NULL);
 		initServer(atoi(argv[1]));
-		//int resultatJeu = pthread_create(&threadJeu, NULL, tourDeJeu, NULL);
-		//si le thread de jeu echoue
-		//if (resultatJeu != 0) {
-		//	runLog("Echec du thread de jeu", 0);
-		//	runLogInt(resultatJeu, 0);
-		//	return 1;			
-		//}
-		int 
-		socket_descriptor, /* descripteur de socket */
-		new_socket_descriptor, /* [nouveau] descripteur de socket */
-		longueur_adresse_courante; /* longueur d'adresse courante d'un client */
-	
-		sockaddr_in 
-			adresse_locale, /* structure d'adresse locale*/
-			adresse_client_courant; /* adresse client courant */
-	
-		hostent* ptr_hote; /* les infos recuperees sur la machine hote */
-//		servent* ptr_service; /* les infos recuperees sur le service de la machine */
 
-		/* recuperation du nom de la machine */
-		/* recuperation de la structure d'adresse en utilisant le nom */
-		if ((ptr_hote = gethostbyname(jeu->nomServeur)) == NULL) {
-			perror("erreur : impossible de trouver le serveur a partir de son nom.");
-			exit(1);
-		}	
-		/* initialisation de la structure adresse_locale avec les infos recuperees */
-		/* copie de ptr_hote vers adresse_locale */
-		bcopy((char*)ptr_hote->h_addr, (char*)&adresse_locale.sin_addr, ptr_hote->h_length);
-		adresse_locale.sin_family = ptr_hote->h_addrtype; 
-		/* ou AF_INET */
-		adresse_locale.sin_addr.s_addr = INADDR_ANY; 
-		/* ou AF_INET */
-		//on affecte le port qui a ete donne en commande
+		int socket_descriptor;
+		int new_socket_descriptor,  /* new socket descriptor */
+	    longueur_adresse_courante; /* client address length */
+		sockaddr_in local_address,    /* local address socket informations */
+	    adresse_client_courant;  /* client address */
+		hostent* ptr_host;  /* informations about host */
+		char host_name[TAILLE_MAX_NOM]; /* host name */
 
-		adresse_locale.sin_port = htons(atoi(argv[1]));
-		
-		/*-----------------------------------------------------------*/
-		printf("numero de port pour la connexion au serveur : %d \n", 
-		ntohs(adresse_locale.sin_port) /*ntohs(ptr_service->s_port)*/);
-		/* creation de la socket */
+		gethostname(host_name,TAILLE_MAX_NOM);  /* getting host name */
+
+		/* set a timeout for 1 min */
+		timeoutRead = malloc(sizeof(timeval));
+		long int tv_sec = READ_TIMEOUT;
+		timeoutRead->tv_sec = tv_sec;
+		timeoutRead->tv_usec = 0;
+
+		/* get hostent using server name */
+		if ((ptr_host = gethostbyname(host_name)) == NULL) {
+	    	perror("error: unable to find server using its name.");
+	    	exit(1);
+	  	}
+
+	  	/* initialize sockaddr_in with these informations */
+	  	bcopy((char*)ptr_host->h_addr, (char*)&local_address.sin_addr, ptr_host->h_length);
+		local_address.sin_family = ptr_host->h_addrtype;
+		/* AF_INET */
+		local_address.sin_addr.s_addr = INADDR_ANY;
+		/* use the defined port */
+		//local_address.sin_port = htons(atoi(argv[1]));
+		local_address.sin_port = htons(atoi(argv[1]));
+		printf("Using port : %d \n", ntohs(local_address.sin_port));
+		/* create socket in socket_descriptor */
+
 		if ((socket_descriptor = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-			perror("erreur : impossible de creer la socket de connexion avec le client.");
+			perror("error: unable to create the connection socket.");
+			exit(1);
+		  }
+		/* bind socket descripteurSocket to sockaddr_in local_address */
+		if ((bind(socket_descriptor, (sockaddr*)(&local_address), sizeof(local_address))) < 0) {
+			perror("error: unable to bind the socket to the connection address.");
 			exit(1);
 		}
+	  	/* initialize the queue */
+	  	listen(socket_descriptor,MAX_JOUEURS);
 
-		/* association du socket socket_descriptor a la structure d'adresse adresse_locale */
-		if ((bind(socket_descriptor, (sockaddr*)(&adresse_locale), sizeof(adresse_locale))) < 0) {
-			perror("erreur : impossible de lier la socket a l'adresse de connexion.");
-			exit(1);
-		}
-		
-		/* initialisation de la file d'ecoute */
-		listen(socket_descriptor,MAX_JOUEURS);
-		
-
-		/* attente des connexions et traitement des donnees recues */
-		for(;;) {
+		printf("Server initialise\n");
+		//printf("%d \n",local_address.sin_port);
+	  	//on attend la connexion de tous les joueurs
+	  	while(nbJoueursCourants < MAX_JOUEURS) {
+	  		printf("ajouts de joueurs\n");
 			longueur_adresse_courante = sizeof(adresse_client_courant);
-			/* on verifie que le nbJoueurs est pas max */
-			printf("%d", nbJoueursCourants);
-			int maxJoueur = 0;
-			if ((nbJoueursCourants+1) == MAX_JOUEURS){
-				runLog("Trop de joueurs connectes\n", 0);
-				/* adresse_client_courant sera renseignee par accept via les infos du connect */
-				if ((new_socket_descriptor = accept(socket_descriptor, (sockaddr*) (&adresse_client_courant), &longueur_adresse_courante)) < 0) {
-					perror("erreur : impossible d'accepter la connexion avec le client.");
-					exit(1);
-				}
-				maxJoueur = 1;
-				char* messageErr = "64565"; 
-				if (write(new_socket_descriptor, messageErr, strlen(messageErr)+1) == -1) {
-					runLog("erreur d'envoi vers client excedentaire", 0);
-				}
-				else {
-					runLog("rejet de joueur en trop bien envoye", 0);
-				}
-
-				close(new_socket_descriptor);
-			}
-			else {
-				maxJoueur = 0;
-			}
-			/* adresse_client_courant sera renseignee par accept via les infos du connect */
-			if ((new_socket_descriptor = accept(socket_descriptor, (sockaddr*) (&adresse_client_courant), &longueur_adresse_courante)) < 0) {
+			if ((new_socket_descriptor = accept(socket_descriptor, (sockaddr*) (&adresse_client_courant),(socklen_t *) &longueur_adresse_courante)) < 0) {
 				perror("erreur : impossible d'accepter la connexion avec le client.");
 				exit(1);
 			}
-			if (maxJoueur == 0) {
-				runLog("Tentative de connexion d'un joueur.", 0);
-
-				/* Creation d'un joueur */
-				Joueur* joueur = initJoueur(adresse_locale, new_socket_descriptor);
-				//on assigne le nom du joueur sur le message
-
-				pthread_create(&threadJoueur[joueur->joueurId], NULL, loopJoueur, (void *)joueur);
-				printf("TESTING DE FOU\n");
+			else if (new_socket_descriptor == 0) {
+				printf("%s\n", "AHHHHHHHHHHHHHHHHHHH");
+			}
+			int longueur;
+			char buffer[TAILLE_BUFFER];
+			memset(buffer, '0', TAILLE_BUFFER);
+			longueur = read(new_socket_descriptor, buffer, TAILLE_BUFFER-1);
+			//runLogInt(errno,1);
+			//printf("%s\n", strerror(errno));
+			if (longueur < 0) {
+				printf("ERROR DE READ\n");
+			}
+			else if (longueur == 0) {
+				printf("Disconnect du client\n");		
+			}
+			if (longueur > 0) {
+				printf("%d\n", longueur);
+				//initialise le joueur ET incrémente le nbJoueursCourant. (ajoute dans le tableau)
+				//init de nom pourri pour tes
+				printf("reception\n");
+				printf("%s\n", buffer);
+				printf("nom du client qui se connecte\n");
+				printf("%s\n", getSourceNom(buffer, 9));
+				printf("%s\n", "fin reception");
+				initJoueur(new_socket_descriptor, getSourceNom(buffer, 9), adresse_client_courant);
 			}
 		}
-		free(jeu);
-	}
-	else {
-		perror("La bonne commande est ./csServ [port]");
+
+		int tourCpt;
+		for (tourCpt = 0; tourCpt < MAX_TOURS ; ++tourCpt) {
+			printf("%d\n", tourCpt);
+			//on verifie que tous les joueurs sont pas morts
+			if(joueursMorts() == 0) {
+				int iterJoueur;
+				//on parcourt les joueurs dans l'ordre du tableau
+				for (iterJoueur = 0; iterJoueur < nbJoueursCourants; ++iterJoueur) {
+					printf("iteration de joueur\n");
+					//on vérifie que le joueur existe
+					if (joueurs[iterJoueur]) {
+						printf("joueur %d\n", iterJoueur);
+						int longueur = 0;
+						char buffer[TAILLE_BUFFER];
+						//on écoute
+						//segfault
+						//printf("%d\n", joueurs[iterJoueur]->sock_desc);
+						//setsockopt(joueurs[iterJoueur]->sock_desc, SOL_SOCKET, SO_RCVTIMEO,(struct timeval *)&timeoutRead,sizeof(struct timeval));
+						//envoi du token au joueur en question
+						//generation du message, de type 8 (token), 0 parce qu'on s'en fiche
+						//50 = max size (large)
+						char* msg = calloc(TAILLE_BUFFER, sizeof(char));
+						msg = genMessage(joueurs[iterJoueur]->nomJoueur,joueurs[iterJoueur]->nomJoueur, 8);
+						printf("(%s\n", "BOUH");
+						printf("%s\n", msg);
+						envoiTous(msg);
+						longueur = read(joueurs[iterJoueur]->sock_desc, buffer, TAILLE_BUFFER-1);
+						//runLogInt(errno,1);
+						//printf("%s\n", strerror(errno));
+						if (longueur < 0) {
+							printf("ERROR DE READ\n");
+							joueurs[iterJoueur] = NULL;
+						}
+						else if (longueur == 0) {
+							printf("CLOSE DE SOCKET\n");
+							joueurs[iterJoueur] = NULL;							
+						}
+						if (longueur > 0) {
+							//printf("%s\n", buffer);
+							//si le joueur n'est pas mort
+							printf("RECEIVED A THING\n");
+							if (joueurs[iterJoueur]->pv > 0) {
+								printf("JOUEUR ALIVE\n");
+								printf("PV du joueur %i\n", joueurs[iterJoueur]->pv);
+								//si les ennemis sont morts, on envoie un message de fin
+								//TODO: plus tard, on enverra un truc pour redémarrer?
+								if (ennemisElimines(jeu->ennemis) == 1) {
+									printf("VICTOIRE\n");
+									//message de fin (le 9 envoie fin de jeu, le cinquième caractere determine vitoire
+									//ou défaite (1 ou 0))
+									char* bufferFinJeu = "900001";
+									envoiTous(bufferFinJeu);
+									printf("victoire des joueurs\n");
+									return 0;
+								}
+								else {
+									printf("SOMETHING HAPPENED\n");
+									buffer[longueur] = '\0';
+									runLog(buffer, 0);
+									joueurs[iterJoueur]->bufferAction = buffer;
+									char* bufferRenvoi;
+									//on traite l'action liée au buffer
+									bufferRenvoi = action(buffer, joueurs[iterJoueur]);
+									//on broadcast à tout le monde l'info
+									envoiTous(bufferRenvoi);
+								}
+							}
+							//on ignore les joueurs morts
+						}
+						//printf("DID NOT READ\n");
+					}
+					//le joueur existe pas on passe au suivant (pas opti)
+				}
+			}
+			else {
+				//si ils sont tous morts, on envoi un message de défaite
+				//message de fin (le 9 envoie fin de jeu, le cinquième caractere determine vitoire
+				//ou défaite (1 ou 0))
+				char* bufferFinJeu = "900000";
+				envoiTous(bufferFinJeu);
+				printf("defaite des joueurs\n");
+				return 0;
+			}
+		}
 	}
 	return 0;
 }
